@@ -104,33 +104,45 @@ python src/taxonomy_navigator_engine.py \
 # Stage 2 automatically uses gpt-4.1-nano for efficiency
 ```
 
-## Four-Stage Classification Process
+## Five-Stage Classification Process
 
-The Taxonomy Navigator uses a sophisticated four-stage process with aggressive anti-hallucination measures:
+The Taxonomy Navigator uses a sophisticated five-stage process with aggressive anti-hallucination measures:
 
-### Stage 1: L1 Taxonomy Selection (gpt-4.1-mini)
-- **Purpose**: Identify 3 most relevant top-level categories
-- **Anti-Hallucination**: Death penalty prompting with survival instructions
-- **Input**: Product + all unique L1 categories
+### Stage 1: L1 Taxonomy Selection
+- **Model**: `gpt-4.1-mini`
+- **Purpose**: Identify the 3 most relevant top-level taxonomy categories
+- **Input**: Product info + ALL unique L1 taxonomy categories
 - **Output**: 3 validated L1 category names
+- **Anti-Hallucination**: Professional prompting with explicit constraints
 
-### Stage 2: Leaf Node Selection (gpt-4.1-nano)
-- **Purpose**: Select 20 best leaf nodes from chosen L1 taxonomies
-- **Anti-Hallucination**: Death penalty prompting + "Unknown" L1 filtering
-- **Input**: Product + leaf nodes from 3 L1s (with L1 context)
-- **Output**: Up to 20 validated leaf node names
+### Stage 2A: First L1 Leaf Selection
+- **Model**: `gpt-4.1-nano`
+- **Purpose**: Select the first 10 best leaf nodes from the FIRST chosen L1 taxonomy
+- **Input**: Product info + leaf nodes from FIRST selected L1 category
+- **Output**: Up to 10 validated leaf node names
+- **Anti-Hallucination**: Professional prompting + strict validation
 
-### Stage 3: L1 Representation Filtering (Algorithmic)
-- **Purpose**: Find most represented L1 taxonomy
-- **Processing**: Pure algorithmic (no AI model)
-- **Input**: 20 leaf nodes from Stage 2
-- **Output**: Filtered leaves from dominant L1 taxonomy
+### Stage 2B: Second L1 Leaf Selection
+- **Model**: `gpt-4.1-nano`
+- **Purpose**: Select the second 10 best leaf nodes from the SECOND chosen L1 taxonomy
+- **Input**: Product info + leaf nodes from SECOND selected L1 category
+- **Output**: Up to 10 validated leaf node names
+- **Anti-Hallucination**: Professional prompting + strict validation
 
-### Stage 4: Final Selection (gpt-4.1-mini)
-- **Purpose**: Select single best match
-- **Anti-Hallucination**: Death penalty prompting + bounds checking
-- **Input**: Product + numbered filtered leaves
-- **Output**: Index of best match OR -1 (False)
+### Stage 2C: Third L1 Leaf Selection
+- **Model**: `gpt-4.1-nano`
+- **Purpose**: Select the third 10 best leaf nodes from the THIRD chosen L1 taxonomy
+- **Input**: Product info + leaf nodes from THIRD selected L1 category
+- **Output**: Up to 10 validated leaf node names
+- **Anti-Hallucination**: Professional prompting + strict validation
+
+### Stage 3: Final Selection
+- **Model**: `gpt-4.1`
+- **Purpose**: Make the final decision from the combined 30 leaf nodes from Stages 2A, 2B, 2C
+- **Input**: Product info + numbered list of filtered leaf nodes
+- **Output**: Index of selected category (0-based) OR -1 for complete failure
+- **Anti-Hallucination**: Professional prompting + robust bounds checking
+- **Model Settings**: temperature=0 for deterministic selection, top_p=1 for full token distribution
 
 ## Command Line Interface
 
@@ -307,12 +319,13 @@ SURVIVAL INSTRUCTIONS:
 ### Mixed Model Approach
 The system optimizes cost and performance using different models:
 
-| Stage | Model | Purpose | Cost | Performance |
-|-------|-------|---------|------|-------------|
-| 1 | `gpt-4.1-mini` | L1 taxonomy selection | Higher | Enhanced accuracy |
-| 2 | `gpt-4.1-nano` | Leaf node selection | Lower | Efficient processing |
-| 3 | None | Algorithmic filtering | Zero | Instant |
-| 4 | `gpt-4.1-mini` | Final selection | Higher | Enhanced accuracy |
+| Stage | Model | Purpose | Cost | Performance | Settings |
+|-------|-------|---------|------|-------------|----------|
+| 1 | `gpt-4.1-mini` | L1 taxonomy selection | Higher | Enhanced accuracy | temp=0, top_p=0 |
+| 2A | `gpt-4.1-nano` | First L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
+| 2B | `gpt-4.1-nano` | Second L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
+| 2C | `gpt-4.1-nano` | Third L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
+| 3 | `gpt-4.1` | Final selection | Higher | Enhanced accuracy | temp=0, top_p=1 |
 
 ### Model Configuration
 ```python
@@ -450,117 +463,4 @@ print(f"Classification took {duration:.2f} seconds")
 ## Performance Optimization
 
 ### Batch Processing Tips
-```python
-# Efficient batch processing
-navigator = TaxonomyNavigator("data/taxonomy.en-US.txt")
-
-# Process multiple products
-products = ["product1", "product2", "product3"]
-results = []
-
-for product in products:
-    try:
-        paths, best_idx = navigator.navigate_taxonomy(product)
-        results.append((product, paths, best_idx))
-    except Exception as e:
-        print(f"Error processing {product}: {e}")
-        results.append((product, [["False"]], 0))
 ```
-
-### Cost Optimization
-- **Use Mixed Model Strategy**: Default configuration optimizes cost vs. performance
-- **Batch API Calls**: Process multiple products in sequence to amortize setup costs
-- **Cache Results**: Store results for repeated classifications
-
-### Performance Monitoring
-```python
-import logging
-
-# Enable performance logging
-logging.getLogger("taxonomy_navigator").setLevel(logging.INFO)
-
-# Monitor API call counts and timing
-# Logs will show:
-# - Stage 1: API call to gpt-4.1-mini
-# - Stage 2: API call to gpt-4.1-nano  
-# - Stage 3: Algorithmic processing (no API call)
-# - Stage 4: API call to gpt-4.1-mini
-```
-
-## Best Practices
-
-### Input Preparation
-```python
-# Good: Clear, descriptive product information
-product_info = "iPhone 14 Pro: Smartphone with 48MP camera, A16 chip, and 6.1-inch display"
-
-# Avoid: Vague or minimal descriptions
-product_info = "Phone"  # Too vague
-product_info = "iPhone"  # Missing key details
-```
-
-### Error Handling
-```python
-def safe_classify(navigator, product_info):
-    try:
-        paths, best_idx = navigator.navigate_taxonomy(product_info)
-        
-        if paths == [["False"]]:
-            return {"success": False, "error": "Classification failed"}
-        
-        return {
-            "success": True,
-            "category": paths[best_idx][-1],
-            "full_path": " > ".join(paths[best_idx])
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-```
-
-### Logging Configuration
-```python
-import logging
-
-# Production logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('taxonomy_navigator.log'),
-        logging.StreamHandler()
-    ]
-)
-
-# Development logging (more verbose)
-logging.getLogger("taxonomy_navigator").setLevel(logging.DEBUG)
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### "Unknown" L1 Categories
-If you see categories with "Unknown" L1 taxonomy, this indicates:
-- AI hallucinated a category not in the taxonomy file
-- The category exists but has mapping issues
-- Solution: Check taxonomy file format and completeness
-
-#### Inconsistent Results
-If classifications vary between runs:
-- Check if temperature=0 and top_p=0 (should be deterministic)
-- Verify API key and model availability
-- Check for network issues affecting API calls
-
-#### Poor Classification Quality
-If results seem incorrect:
-- Improve product descriptions (more detail helps)
-- Check taxonomy file covers the product domain
-- Review stage-by-stage output to identify where classification goes wrong
-
-### Getting Help
-
-1. **Enable Verbose Logging**: Use `--verbose` flag for detailed output
-2. **Check Stage-by-Stage**: Use `--show-stage-paths` to see AI selections
-3. **Review Logs**: Check for error messages and API response details
-4. **Test with Simple Cases**: Start with clear, unambiguous products
-5. **Validate Taxonomy**: Ensure taxonomy file is complete and well-formatted

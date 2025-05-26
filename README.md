@@ -1,12 +1,12 @@
 # Taxonomy Navigator - AI-Powered Product Categorization System
 
-An intelligent, four-stage AI classification system that automatically categorizes products into appropriate taxonomy categories using OpenAI's GPT models with aggressive anti-hallucination measures.
+An intelligent, five-stage AI classification system that automatically categorizes products into appropriate taxonomy categories using OpenAI's GPT models with aggressive anti-hallucination measures.
 
 ## 🎯 System Overview
 
-The Taxonomy Navigator uses a sophisticated four-stage progressive filtering approach that efficiently narrows down from thousands of categories to a single best match:
+The Taxonomy Navigator uses a sophisticated five-stage progressive filtering approach that efficiently narrows down from thousands of categories to a single best match:
 
-### **Four-Stage Classification Process**
+### **Five-Stage Classification Process**
 
 🎯 **STAGE 1: L1 TAXONOMY SELECTION** (AI-Powered)
 - **Purpose**: Identify the 3 most relevant top-level taxonomy categories
@@ -14,44 +14,51 @@ The Taxonomy Navigator uses a sophisticated four-stage progressive filtering app
 - **Input**: Product info + ALL unique L1 taxonomy categories (no duplicates)
 - **Process**: AI selects 3 most relevant L1 categories (e.g., "Electronics", "Food, Beverages & Tobacco", "Apparel & Accessories")
 - **Output**: List of 3 L1 category names
-- **Anti-Hallucination**: Death penalty prompting with explicit survival instructions
+- **Anti-Hallucination**: Professional prompting with explicit constraints
 
-🔍 **STAGE 2: LEAF NODE SELECTION** (AI-Powered)
-- **Purpose**: Select the best leaf nodes from the chosen L1 taxonomies
+🔍 **STAGE 2A: FIRST L1 LEAF SELECTION** (AI-Powered)
+- **Purpose**: Select the first 10 best leaf nodes from the FIRST chosen L1 taxonomy
 - **Model**: `gpt-4.1-nano` (efficient model for leaf selection)
-- **Input**: Product info + ALL leaf nodes from the 3 selected L1 categories
-- **Process**: AI selects top 20 most relevant leaf categories from the filtered set
-- **Output**: List of 20 leaf node names from the selected L1 taxonomies
-- **Anti-Hallucination**: Death penalty prompting + "Unknown" L1 filtering
+- **Input**: Product info + ALL leaf nodes from the FIRST selected L1 category
+- **Process**: AI selects top 10 most relevant leaf categories from the FIRST L1 taxonomy
+- **Output**: List of up to 10 leaf node names from the FIRST L1 taxonomy
+- **Anti-Hallucination**: Professional prompting + strict validation
 
-📊 **STAGE 3: L1 REPRESENTATION FILTERING** (Algorithmic)
-- **Purpose**: Identify which L1 taxonomy is most represented in the leaf selections
-- **Process**: 
-  * Map each leaf to its L1 taxonomy category
-  * Count occurrences of each L1 category
-  * Keep only leaves from the most represented L1 taxonomy
-- **Output**: Filtered list of leaf nodes from the dominant L1 taxonomy
-- **Cost**: No API calls - purely algorithmic processing
+🔍 **STAGE 2B: SECOND L1 LEAF SELECTION** (AI-Powered)
+- **Purpose**: Select the second 10 best leaf nodes from the SECOND chosen L1 taxonomy
+- **Model**: `gpt-4.1-nano` (efficient model for leaf selection)
+- **Input**: Product info + ALL leaf nodes from the SECOND selected L1 category
+- **Process**: AI selects top 10 most relevant leaf categories from the SECOND L1 taxonomy
+- **Output**: List of up to 10 leaf node names from the SECOND L1 taxonomy
+- **Anti-Hallucination**: Professional prompting + strict validation
 
-🏆 **STAGE 4: FINAL SELECTION** (AI-Powered with Anti-Hallucination)
-- **Purpose**: Make the final decision from the most represented L1 taxonomy leaves
+🔍 **STAGE 2C: THIRD L1 LEAF SELECTION** (AI-Powered)
+- **Purpose**: Select the third 10 best leaf nodes from the THIRD chosen L1 taxonomy
+- **Model**: `gpt-4.1-nano` (efficient model for leaf selection)
+- **Input**: Product info + ALL leaf nodes from the THIRD selected L1 category
+- **Process**: AI selects top 10 most relevant leaf categories from the THIRD L1 taxonomy
+- **Output**: List of up to 10 leaf node names from the THIRD L1 taxonomy
+- **Anti-Hallucination**: Professional prompting + strict validation
+
+🏆 **STAGE 3: FINAL SELECTION** (AI-Powered with Anti-Hallucination)
+- **Purpose**: Make the final decision from the combined 30 leaf nodes from Stages 2A, 2B, 2C
 - **Model**: `gpt-4.1-mini` (enhanced model for critical final selection)
-- **Input**: Product info + filtered leaf nodes from Stage 3
+- **Input**: Product info + up to 30 leaf nodes from combined Stage 2 results
 - **Process**: 
-  * Construct death penalty prompt with explicit constraints
-  * Present filtered categories as numbered options (leaf names only)
+  * Construct clear, professional prompt with specific constraints
+  * Present up to 30 categories as numbered options (leaf names only)
   * AI identifies core product and selects best match
   * Parse AI response with robust validation and bounds checking
 - **Output**: Index of selected category (0-based, guaranteed valid) OR -1 for complete failure
-- **Anti-Hallucination**: Death penalty prompting + robust validation + "False" for failures
+- **Anti-Hallucination**: Professional prompting + numeric validation + bounds checking + "False" for failures
 
 ## 🚨 Anti-Hallucination Measures
 
-### **Death Penalty Prompting Strategy**
-- **Extreme Language**: Uses phrases like "You will DIE if you hallucinate" to make consequences crystal clear
-- **Explicit Prohibitions**: Lists exactly what will cause "death" (hallucinations, modifications, creativity)
-- **Survival Instructions**: Clear, positive instructions on exactly what to do to "survive"
-- **Constant Reminders**: Reinforces the death penalty throughout each prompt
+### **Professional Prompting Strategy**
+- **Clear Instructions**: Uses professional language to guide AI responses
+- **Explicit Constraints**: Lists exactly what is allowed and what is not
+- **Structured Output**: Clear format requirements for responses
+- **Constant Validation**: Multiple validation steps at each stage
 
 ### **Zero Context Between API Calls**
 - **Blank Slate**: Each API call starts fresh with no conversation history
@@ -59,21 +66,20 @@ The Taxonomy Navigator uses a sophisticated four-stage progressive filtering app
 - **Deterministic**: Uses temperature=0 and top_p=0 for consistent results
 
 ### **Multi-Layer Validation**
-- **Unknown L1 Filtering**: Stage 2 removes categories with "Unknown" L1 taxonomy
-- **Bounds Checking**: Stage 4 validates AI selections are within valid ranges
-- **Fallback Mechanisms**: Graceful handling of invalid AI responses
-- **Complete Failure Handling**: Returns "False" when AI completely fails
+- **Stage 1**: Every returned L1 category is validated against the actual L1 list
+- **Stage 2A/2B/2C**: Every returned leaf category is validated against the filtered leaf list
+- **Stage 3**: AI response is validated to be numeric and within valid range
+- **All hallucinations are logged as CRITICAL errors with full context**
 
 ## ⚡ System Architecture Benefits
 
-✅ **Efficiency**: Progressive filtering (L1s → 3 L1s → leafs from 3 L1s → 20 leafs → most represented L1 → 1)
-✅ **Cost Optimization**: Only 3 API calls per classification (Stages 1, 2, 4)
-✅ **Improved Focus**: Stage 1 L1 selection provides better domain targeting
-✅ **Accuracy**: Each stage focuses on appropriate level of granularity
-✅ **Consistency**: L1 representation filtering ensures results stay within same domain
+✅ **Efficiency**: Progressive filtering (L1s → 3 L1s → 10 leaves per L1 → 30 leaves → 1)
+✅ **Cost Optimization**: Only 5 API calls per classification (Stages 1, 2A, 2B, 2C, 3)
+✅ **Improved Focus**: Each stage focuses on appropriate level of granularity
+✅ **Accuracy**: Each L1 taxonomy is explored independently for better coverage
 ✅ **Scalability**: Handles large taxonomies without overwhelming the AI
-✅ **Model Strategy**: Uses gpt-4.1-mini for critical stages (1&4), gpt-4.1-nano for efficiency (stage 2)
-✅ **Anti-Hallucination**: Death penalty prompting prevents AI from creating non-existent categories
+✅ **Model Strategy**: Uses gpt-4.1-mini for critical stages (1&3), gpt-4.1-nano for efficiency (stage 2)
+✅ **Manageable Chunks**: Stage 2 broken into 3 parts of 10 items each for better AI performance
 
 ## 🛠️ Installation & Setup
 
@@ -171,27 +177,28 @@ python unit_tests.py
 | Stage | Model | Purpose | Reasoning |
 |-------|-------|---------|-----------|
 | 1 | `gpt-4.1-mini` | L1 taxonomy selection | Critical domain targeting requires enhanced model |
-| 2 | `gpt-4.1-nano` | Leaf node selection | Efficient processing of filtered categories |
-| 3 | None (Algorithmic) | L1 representation filtering | No AI needed for counting |
-| 4 | `gpt-4.1-mini` | Final selection | Critical final decision requires enhanced model |
+| 2A | `gpt-4.1-nano` | First L1 leaf selection | Efficient processing of filtered categories |
+| 2B | `gpt-4.1-nano` | Second L1 leaf selection | Efficient processing of filtered categories |
+| 2C | `gpt-4.1-nano` | Third L1 leaf selection | Efficient processing of filtered categories |
+| 3 | `gpt-4.1-mini` | Final selection | Critical final decision requires enhanced model |
 
 ## 🔧 Configuration Options
 
 ### Model Configuration
-- **Default**: `gpt-4.1-mini` for stages 1&4, `gpt-4.1-nano` for stage 2
-- **Customizable**: Can specify different model for stages 1&4 via `--model` parameter
+- **Default**: `gpt-4.1-mini` for stages 1&3, `gpt-4.1-nano` for stage 2
+- **Customizable**: Can specify different model for stages 1&3 via `--model` parameter
 - **Stage 2 Model**: Always uses `gpt-4.1-nano` for efficiency
 
 ### Anti-Hallucination Settings
-- **Death Penalty Prompting**: Always enabled (cannot be disabled)
+- **Professional Prompting**: Always enabled (cannot be disabled)
 - **Zero Context**: Always enabled (cannot be disabled)
-- **Unknown L1 Filtering**: Always enabled (cannot be disabled)
+- **Validation**: Always enabled (cannot be disabled)
 - **Bounds Checking**: Always enabled (cannot be disabled)
 
 ## 📈 Performance Characteristics
 
-- **API Calls**: 3 per classification (Stages 1, 2, 4)
-- **Processing Time**: ~2-5 seconds per product (depending on model response time)
+- **API Calls**: 5 per classification (Stages 1, 2A, 2B, 2C, 3)
+- **Processing Time**: ~3-7 seconds per product (depending on model response time)
 - **Accuracy**: High accuracy due to progressive filtering and anti-hallucination measures
 - **Scalability**: Handles taxonomies with thousands of categories efficiently
 - **Cost**: Optimized with mixed model strategy (mini for critical stages, nano for efficiency)
