@@ -66,7 +66,7 @@ usage() {
     echo "  -t, --taxonomy FILE            Taxonomy file path"
     echo "                                 (default: ../data/taxonomy.en-US.txt)"
     echo "  -m, --model MODEL              OpenAI model for Stages 1&3"
-    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-nano)"
+    echo "                                 (default: gpt-4.1-nano, Stage 5 uses gpt-4.1-mini)"
     echo "  -v, --verbose                  Enable verbose logging for debugging"
     echo "  -h, --help                     Show this help message"
     echo ""
@@ -204,7 +204,7 @@ product_count=$(count_products "$PRODUCTS_FILE")
 echo -e "${GREEN}📦 Products file: $PRODUCTS_FILE${NC}"
 echo -e "${GREEN}📊 Products to test: $product_count${NC}"
 echo -e "${GREEN}📁 Taxonomy file: $TAXONOMY_FILE${NC}"
-echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-nano${NC}"
+echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 5 uses gpt-4.1-mini${NC}"
 
 if [ -n "$VERBOSE" ]; then
     echo -e "${GREEN}🔍 Verbose logging enabled${NC}"

@@ -235,39 +235,44 @@ for category in refined_leaves:
 - Provides visibility into AI hallucination patterns
 - No API calls required (algorithmic processing)
 
-### Stage 5: Final Selection (gpt-4.1-nano)
+### Stage 5: Final Selection (gpt-4.1-mini)
 
 **Purpose**: Select the single best match from the validated leaves using enhanced model precision.
 
 **Process**:
 1. **Candidate Formatting**: Converts validated leaf names to numbered options
-2. **Structured Prompting**: Uses a multi-step approach for product identification
-3. **API Request**: Sends structured prompt to gpt-4.1-nano
+2. **Hardcore Prompting**: Uses explicit constraints and strict formatting requirements
+3. **API Request**: Sends structured prompt to gpt-4.1-mini
 4. **Selection Parsing**: Extracts the final selection and converts to 0-based index
+5. **Anti-Hallucination Validation**: Robust index validation and bounds checking
+6. **Multiple Fallback Mechanisms**: Graceful handling of invalid AI responses
+7. **Final Safety Checks**: Guarantees valid category selection
 
-**Structured Prompting Strategy**:
+**Enhanced Prompting Strategy**:
 ```
-Given the product: '{product_info}', which ONE of these categories is most appropriate?
+CRITICAL TASK: You MUST select the EXACT BEST MATCH from the provided options below.
 
-First, explicitly identify what specific product is being sold here:
-1. What is the actual core product? (not accessories or related items)
-2. Is this a main product or an accessory FOR another product?
-3. Distinguish between the product itself and any packaging, cases, or add-ons mentioned.
+MANDATORY INSTRUCTIONS:
+1. You MUST select ONE of the numbered options below - NO EXCEPTIONS
+2. You CANNOT create, modify, or suggest any other category
+3. You CANNOT select a category that is not in the list below
+4. You MUST return ONLY the number (1, 2, 3, etc.) - nothing else
 
-Keep your determination of the core product firmly in mind when making your selection.
-Be especially careful to distinguish between categories for the main product versus categories for accessories.
+ANALYSIS STEPS:
+Step 1: What is the PRIMARY PRODUCT being sold? (ignore accessories, cases, etc.)
+Step 2: Which of the options below EXACTLY matches that primary product?
+Step 3: Return the NUMBER of that exact match
 
-Categories:
-1. Electronics > Cell Phones > Smartphones
-2. Electronics > Cell Phone Accessories > Cases
+AVAILABLE OPTIONS (you MUST choose from these ONLY):
+1. Category Option 1
+2. Category Option 2
 ...
 
-First identify the core product in a sentence, then select the number of the most appropriate category.
-Return ONLY the NUMBER of the most appropriate category, with no additional text.
+ANSWER (number only):
 ```
 
 **Model Configuration**:
-- Model: `gpt-4.1-nano` (enhanced precision for final decision)
+- Model: `gpt-4.1-mini` (enhanced precision for final decision)
 - Temperature: 0 (deterministic results)
 - Top_p: 0 (deterministic results)
 
@@ -380,10 +385,13 @@ The current architecture follows a "simple and focused" approach:
 1. **Maximum Efficiency**: Progressive filtering from thousands → 20 → filtered L1 → 10 → validated → 1
 2. **Cost Optimization**: Three API calls (Stages 1, 3, and 5), Stages 2 and 4 are algorithmic
 3. **Improved Accuracy**: Each stage focuses on a specific level of granularity
-4. **Enhanced Precision**: Final stage uses gpt-4.1-nano for better decision quality
+4. **Enhanced Precision**: Final stage uses gpt-4.1-mini for better decision quality
 5. **Data Integrity**: Stage 4 validation prevents AI hallucinations
-6. **Scalability**: Handles large taxonomies without overwhelming the AI
-7. **Consistency**: Layer filtering ensures results stay within the same L1 taxonomy domain
+6. **Anti-Hallucination Measures**: Stage 5 robust validation prevents invalid selections
+7. **Scalability**: Handles large taxonomies without overwhelming the AI
+8. **Consistency**: Layer filtering ensures results stay within the same L1 taxonomy domain
+9. **Hardcore Prompting**: Explicit constraints in Stage 5 prevent wrong selections
+10. **Guaranteed Valid Results**: Multiple safety checks ensure valid category selection
 
 ### Extensibility Architecture
 

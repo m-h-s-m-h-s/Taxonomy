@@ -111,11 +111,14 @@ The Taxonomy Navigator uses a sophisticated five-stage approach:
 3. Ensures data integrity before final selection
 4. Logs validation statistics (valid vs invalid categories)
 
-#### Stage 5: Final Selection (gpt-4.1-nano)
+#### Stage 5: Final Selection (gpt-4.1-mini)
 1. Takes the validated candidates from Stage 4
-2. Uses structured prompting to identify the exact product type
+2. Uses hardcore prompting with explicit constraints to prevent wrong selections
 3. Distinguishes between main products and accessories
 4. Selects the single best match from validated candidates using enhanced model
+5. **Anti-hallucination measures**: Robust index validation and bounds checking
+6. **Multiple fallback mechanisms**: Graceful handling of invalid AI responses
+7. **Guaranteed valid results**: Final safety checks ensure valid category selection
 
 ### Enhanced Prompting Strategy
 
@@ -273,9 +276,10 @@ False
 
 - **Processing Speed**: ~4-5 seconds per product (including five stages with three API calls)
 - **API Usage**: Three API calls per product (Stages 1, 3, and 5)
-- **Cost Optimization**: Uses gpt-4.1-nano for initial stages, gpt-4.1-nano for final precision
+- **Cost Optimization**: Uses gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
 - **Deterministic Results**: temperature=0 and top_p=0 for consistency
 - **Data Integrity**: Stage 4 validation prevents AI hallucinations
+- **Enhanced Accuracy**: Hardcore prompting in Stage 5 prevents wrong selections
 
 ## Error Handling
 

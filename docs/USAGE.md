@@ -121,10 +121,13 @@ The system uses a sophisticated five-stage approach for maximum efficiency and a
    - Ensures data integrity before final selection
    - Logs validation statistics (valid vs invalid categories)
 
-5. **Final Selection** (gpt-4.1-nano):
-   - Uses sophisticated prompting to identify the exact product type
+5. **Final Selection** (gpt-4.1-mini):
+   - Uses hardcore prompting with explicit constraints to prevent wrong selections
    - AI selects the single best match from the validated candidates
    - Enhanced model provides better precision for final decision
+   - **Anti-hallucination measures**: Robust index validation and bounds checking
+   - **Multiple fallback mechanisms**: Graceful handling of invalid AI responses
+   - **Guaranteed valid results**: Final safety checks ensure valid category selection
    - Returns the full taxonomy path to that category
 
 ## Single Product Classification

@@ -15,7 +15,7 @@
 # - Verbose logging option for debugging
 # - Automatic results directory creation
 # - Clear success/failure feedback
-# - Uses gpt-4.1-nano for initial stages, gpt-4.1-nano for final precision
+# - Uses gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
 # - Stage 4 validation prevents AI hallucinations
 #
 # 5-Stage Classification Process:
@@ -82,7 +82,7 @@ usage() {
     echo "  -o, --output FILE              Output JSON file for results"
     echo "                                 (default: ../results/taxonomy_results.json)"
     echo "  -m, --model MODEL              OpenAI model for Stages 1&3"
-    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-nano)"
+    echo "                                 (default: gpt-4.1-nano, Stage 5 uses gpt-4.1-mini)"
     echo "  -v, --verbose                  Enable verbose logging for debugging"
     echo "  -h, --help                     Show this help message"
     echo ""
@@ -286,7 +286,7 @@ else
 fi
 
 echo -e "${GREEN}📁 Taxonomy file: $TAXONOMY_FILE${NC}"
-echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-nano${NC}"
+echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 5 uses gpt-4.1-mini${NC}"
 
 if [ -n "$VERBOSE" ]; then
     echo -e "${GREEN}🔍 Verbose logging enabled${NC}"

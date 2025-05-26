@@ -142,17 +142,22 @@ MacBook Pro: Laptop computer for professional use
 - **Single Product Script**: Handles detailed analysis, metrics, JSON output, interactive mode
 - **Batch Script**: Handles simple, clean batch testing for quick validation
 
-**5-Stage Classification Process:**
-- **Stage 1**: AI selects top 20 categories from 4,722 options (gpt-4.1-nano)
-- **Stage 2**: Algorithmic filtering to most popular L1 taxonomy layer
-- **Stage 3**: AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)
-- **Stage 4**: Validation to ensure no AI hallucinations (algorithmic)
-- **Stage 5**: AI final selection using enhanced model (gpt-4.1-nano)
+## Five-Stage Classification Process
 
-**When to use which:**
-- Need detailed analysis? → Use single product script
-- Need quick batch validation? → Use batch script
-- Need metrics and JSON output? → Use single product script in interactive mode
-- Need clean demo output? → Use batch script
+The Taxonomy Navigator uses a sophisticated five-stage approach for maximum efficiency and accuracy:
+
+1. **Initial Leaf Node Matching** (gpt-4.1-nano): AI selects top 20 relevant categories from all 4,722 options
+2. **Layer Filtering** (algorithmic): Filters to most popular L1 taxonomy layer
+3. **Refined Selection** (gpt-4.1-nano): AI refines to top 10 categories from filtered L1 taxonomy candidates
+4. **Validation** (algorithmic): Ensures AI didn't hallucinate any category names that don't exist
+5. **Final Selection** (gpt-4.1-mini): AI selects best match using enhanced model with anti-hallucination measures
+
+### Anti-Hallucination Protection
+
+The system includes comprehensive protection against AI hallucinations:
+- **Stage 4 Validation**: Removes any category names that don't exist in the taxonomy
+- **Stage 5 Robust Validation**: Multiple layers of index validation and bounds checking
+- **Fallback Mechanisms**: Graceful handling of invalid AI responses
+- **Guaranteed Valid Results**: Final safety checks ensure valid category selection
 
 This simplified structure eliminates confusion and provides clear, logical choices for any classification task! 

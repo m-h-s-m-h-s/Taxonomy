@@ -51,16 +51,19 @@ of categories to a single best match:
    - Key Feature: Data integrity check to prevent hallucinations
    - Cost: No API calls - purely validation processing
 
-🏆 STAGE 5: FINAL SELECTION (AI-Powered with Consistent Model)
+🏆 STAGE 5: FINAL SELECTION (AI-Powered with Enhanced Model)
    - Purpose: Make the final decision with maximum precision from validated categories
    - Input: Product info + validated leaf nodes from Stage 4
-   - AI Model: gpt-4.1-nano (consistent model across all AI stages)
+   - AI Model: gpt-4.1-mini (enhanced model for better final decision quality)
    - Process: 
-     * Present validated categories as numbered options
-     * Use structured 3-step reasoning prompt
-     * AI identifies core product and selects best match
-   - Output: Index of selected category (0-based)
-   - Key Feature: Enhanced prompting to distinguish products from accessories
+     * Construct hardcore, explicit prompt with strict constraints
+     * Present validated categories as numbered options (leaf names only)
+     * AI identifies core product and selects best match using gpt-4.1-mini
+     * Parse AI response with robust validation and bounds checking
+     * Validate selected index is within bounds of validated categories
+     * Return guaranteed valid index of selected category
+   - Output: Index of selected category (0-based, guaranteed valid)
+   - Key Features: Enhanced prompting + anti-hallucination measures + robust validation
 
 === SYSTEM ARCHITECTURE BENEFITS ===
 
@@ -70,7 +73,7 @@ of categories to a single best match:
 ✅ Accuracy: Each stage focuses on appropriate level of granularity
 ✅ Consistency: Layer filtering ensures results stay within same L1 taxonomy domain
 ✅ Scalability: Handles large taxonomies without overwhelming the AI
-✅ Model Consistency: Uses gpt-4.1-nano consistently across all AI stages
+✅ Enhanced Precision: Uses gpt-4.1-mini for critical final selection
 
 === KEY TECHNICAL FEATURES ===
 
@@ -80,8 +83,12 @@ of categories to a single best match:
 - Duplicate Removal: Multiple stages of deduplication for clean results
 - Validation: Ensures all returned categories exist in the actual taxonomy
 - Robust Tie Handling: Stage 2 includes all categories from tied taxonomy layers
-- Consistent Model Strategy: Uses gpt-4.1-nano across all AI stages for consistency
+- Mixed Model Strategy: Cost-effective nano for initial stages, mini for critical final selection
+- Hardcore Prompting: Explicit constraints and strict formatting requirements for Stage 5
 - Hallucination Prevention: Stage 4 validation ensures data integrity
+- Anti-Hallucination Measures: Robust index validation and bounds checking in Stage 5
+- Multiple Fallback Mechanisms: Graceful handling of invalid AI responses
+- Guaranteed Valid Results: Final safety checks ensure valid category selection
 
 Author: AI Assistant
 Version: 5.0
@@ -133,7 +140,7 @@ class TaxonomyNavigator:
     Attributes:
         taxonomy_file (str): Path to the taxonomy file in Google Product Taxonomy format
         model (str): OpenAI model used for Stages 1 and 3 (default: gpt-4.1-nano)
-        final_model (str): OpenAI model used for Stage 5 (default: gpt-4.1-nano)
+        final_model (str): OpenAI model used for Stage 5 (default: gpt-4.1-mini)
         taxonomy_tree (Dict): Hierarchical representation of the taxonomy
         all_paths (List[str]): All taxonomy paths from the file
         leaf_markers (List[bool]): Boolean markers indicating which paths are leaf nodes
@@ -161,7 +168,7 @@ class TaxonomyNavigator:
         """
         self.taxonomy_file = taxonomy_file
         self.model = model
-        self.final_model = "gpt-4.1-nano"  # Stage 5 uses nano model for consistency
+        self.final_model = "gpt-4.1-mini"  # Stage 5 uses mini model for enhanced precision
         
         # Build the taxonomy tree and identify leaf nodes
         self.taxonomy_tree = self._build_taxonomy_tree()
@@ -711,19 +718,29 @@ class TaxonomyNavigator:
         Stage 5: Select the single best match from the validated leaves.
         
         This method implements the fifth stage of classification using enhanced prompting
-        and gpt-4.1-nano for the final selection from the top 10 validated candidates.
+        and gpt-4.1-mini for the final selection from the top 10 validated candidates.
         The mini model provides enhanced precision for the final decision.
         
+        ANTI-HALLUCINATION MEASURES:
+        - Hardcore prompting with explicit constraints prevents wrong selections
+        - Robust index validation ensures selection is within bounds
+        - Multiple fallback mechanisms if AI returns invalid responses
+        - Final safety checks guarantee valid category selection
+        
         Process:
-        1. Construct structured prompt with 3-step reasoning process
+        1. Construct hardcore, explicit prompt with strict constraints
         2. Present validated categories as numbered options (leaf names only)
-        3. AI identifies core product and selects best match using gpt-4.1-nano
-        4. Parse AI response and convert to 0-based index
-        5. Return index of selected category
+        3. AI identifies core product and selects best match using gpt-4.1-mini
+        4. Parse AI response with robust validation and bounds checking
+        5. Validate selected index is within bounds of validated categories
+        6. Return guaranteed valid index of selected category
         
         Improvements in v5.0:
         - Renamed from stage4_final_selection to stage5_final_selection
-        - Changed from gpt-4.1-nano to gpt-4.1-nano for enhanced final selection accuracy
+        - Changed from gpt-4.1-nano to gpt-4.1-mini for enhanced final selection accuracy
+        - Added hardcore prompting with explicit constraints to prevent wrong selections
+        - Added robust index validation and bounds checking
+        - Added multiple fallback mechanisms for invalid AI responses
         - Updated logging and documentation for 5-stage process
         - Enhanced error handling with robust number parsing
 
@@ -754,30 +771,43 @@ class TaxonomyNavigator:
         
         # Construct structured selection prompt using only leaf names
         prompt = (
-            f"Given the product: '{product_info}', which ONE of these categories is most appropriate?\n\n"
-            f"First, explicitly identify what specific product is being sold here:\n"
-            f"1. What is the actual core product? (not accessories or related items)\n"
-            f"2. Is this a main product or an accessory FOR another product?\n"
-            f"3. Distinguish between the product itself and any packaging, cases, or add-ons mentioned.\n\n"
-            f"Keep your determination of the core product firmly in mind when making your selection.\n"
-            f"Be especially careful to distinguish between categories for the main product versus categories for accessories.\n\n"
-            f"Categories:\n"
+            f"CRITICAL TASK: You MUST select the EXACT BEST MATCH from the provided options below.\n\n"
+            
+            f"PRODUCT TO CLASSIFY: '{product_info}'\n\n"
+            
+            f"MANDATORY INSTRUCTIONS:\n"
+            f"1. You MUST select ONE of the numbered options below - NO EXCEPTIONS\n"
+            f"2. You CANNOT create, modify, or suggest any other category\n"
+            f"3. You CANNOT select a category that is not in the list below\n"
+            f"4. You MUST return ONLY the number (1, 2, 3, etc.) - nothing else\n\n"
+            
+            f"ANALYSIS STEPS:\n"
+            f"Step 1: What is the PRIMARY PRODUCT being sold? (ignore accessories, cases, etc.)\n"
+            f"Step 2: Which of the options below EXACTLY matches that primary product?\n"
+            f"Step 3: Return the NUMBER of that exact match\n\n"
+            
+            f"AVAILABLE OPTIONS (you MUST choose from these ONLY):\n"
         )
         
         # Add numbered options using only leaf names (not full paths)
         for i, leaf in enumerate(validated_leaves, 1):
             prompt += f"{i}. {leaf}\n"
             
-        prompt += "\nFirst identify the core product in a sentence, then select the number of the most appropriate category.\nReturn ONLY the NUMBER of the most appropriate category, with no additional text."
+        prompt += (
+            f"\nREMINDER: You MUST select from the options above. "
+            f"Look at the product description and find the option that EXACTLY describes what is being sold.\n"
+            f"Return ONLY the number (1, 2, 3, etc.) of the best match.\n\n"
+            f"ANSWER (number only):"
+        )
         
         try:
-            # Make API call with gpt-4.1-nano for enhanced final selection accuracy
+            # Make API call with gpt-4.1-mini for enhanced final selection accuracy
             response = self.client.chat.completions.create(
-                model=self.final_model,  # Using nano model for Stage 5
+                model=self.final_model,  # Using mini model for Stage 5
                 messages=[
                     {
                         "role": "system", 
-                        "content": "You are a product categorization assistant specialized in identifying the core product in ambiguous descriptions. First identify exactly what specific product is being sold, then select the category that matches that specific product. Be very careful to distinguish between main products and accessories for those products. Return only the number of the most appropriate category."
+                        "content": "You are a product categorization expert. Your ONLY job is to select the EXACT BEST MATCH from a provided list of categories. You MUST NOT create new categories, modify existing ones, or select anything not in the list. You MUST return ONLY a number corresponding to the best option. You are FORBIDDEN from returning anything other than a single number."
                     },
                     {"role": "user", "content": prompt}
                 ],
@@ -789,7 +819,19 @@ class TaxonomyNavigator:
             logger.info(f"Stage 5 complete: AI selected option {result}")
             
             # Parse the number and convert to 0-based index
-            return self._parse_selection_number(result, len(validated_leaves))
+            selected_index = self._parse_selection_number(result, len(validated_leaves))
+            
+            # CRITICAL: Validate the selected index is within bounds
+            if selected_index < 0 or selected_index >= len(validated_leaves):
+                logger.error(f"Stage 5: AI selected invalid index {selected_index}, must be 0-{len(validated_leaves)-1}")
+                logger.warning(f"Stage 5: Defaulting to first validated category: {validated_leaves[0]}")
+                return 0
+            
+            # CRITICAL: Log the actual selected category for verification
+            selected_category = validated_leaves[selected_index]
+            logger.info(f"Stage 5: Selected category '{selected_category}' at index {selected_index}")
+            
+            return selected_index
                 
         except Exception as e:
             logger.error(f"Error in Stage 5 final selection: {e}")
@@ -885,28 +927,52 @@ class TaxonomyNavigator:
         Parse the AI's selection number and convert to 0-based index.
         
         Handles various formats the AI might return (e.g., "1", "1.", "Option 1").
+        Includes robust validation to prevent invalid indices.
 
         Args:
             result (str): Raw response from AI
             max_options (int): Maximum valid option number
             
         Returns:
-            int: 0-based index of selected option
+            int: 0-based index of selected option (guaranteed to be valid)
         """
         try:
-            # Look for any number in the result
-            for i in range(1, max_options + 1):
-                if str(i) in result:
-                    best_index = i - 1
-                    logger.info(f"Parsed selection: option {i} (index {best_index})")
-                    return best_index
+            # Clean the result string
+            cleaned_result = result.strip().lower()
             
-            # If no valid number found, default to first option
-            logger.warning(f"Could not parse selection from: '{result}'. Using first option.")
+            # Look for any number in the result
+            import re
+            numbers = re.findall(r'\d+', cleaned_result)
+            
+            if numbers:
+                # Take the first number found
+                selected_number = int(numbers[0])
+                
+                # Validate the number is within valid range (1 to max_options)
+                if 1 <= selected_number <= max_options:
+                    best_index = selected_number - 1  # Convert to 0-based
+                    logger.info(f"Parsed selection: option {selected_number} (index {best_index})")
+                    return best_index
+                else:
+                    logger.warning(f"AI returned out-of-range number: {selected_number}, valid range is 1-{max_options}")
+            
+            # If no valid number found, try direct number parsing
+            try:
+                direct_number = int(cleaned_result)
+                if 1 <= direct_number <= max_options:
+                    best_index = direct_number - 1
+                    logger.info(f"Parsed direct number: {direct_number} (index {best_index})")
+                    return best_index
+            except ValueError:
+                pass
+            
+            # If all parsing fails, default to first option with warning
+            logger.warning(f"Could not parse valid selection from: '{result}'. Using first option.")
             return 0
             
         except Exception as e:
             logger.error(f"Error parsing selection number: {e}")
+            logger.warning("Defaulting to first option due to parsing error.")
             return 0
 
     def navigate_taxonomy(self, product_info: str) -> Tuple[List[List[str]], int]:
@@ -1002,6 +1068,12 @@ class TaxonomyNavigator:
                 
             # Stage 5: Final selection from validated leaves
             best_match_idx = self.stage5_final_selection(product_info, validated_leaves)
+            
+            # CRITICAL SAFETY CHECK: Ensure best_match_idx is valid
+            if best_match_idx < 0 or best_match_idx >= len(final_paths):
+                logger.error(f"SAFETY CHECK: Invalid best_match_idx {best_match_idx}, must be 0-{len(final_paths)-1}")
+                logger.warning(f"SAFETY CHECK: Forcing best_match_idx to 0")
+                best_match_idx = 0
                 
             # Log completion
             total_duration = time.time() - total_start_time

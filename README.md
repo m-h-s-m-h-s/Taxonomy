@@ -8,7 +8,7 @@ The Taxonomy Navigator implements a sophisticated **five-stage AI classification
 
 ## 🚀 **Key Features**
 
-- **Five-Stage AI Classification**: Uses gpt-4.1-nano and gpt-4.1-nano with progressive filtering and validation
+- **Five-Stage AI Classification**: Uses gpt-4.1-nano and gpt-4.1-mini with progressive filtering and validation
 - **Leaf Node Matching**: Efficiently identifies the most relevant end categories first  
 - **Layer Filtering**: Focuses on the most popular top-level taxonomy category
 - **Refined Selection**: AI narrows down to top 10 candidates from filtered L1 taxonomy results
@@ -45,9 +45,13 @@ The Taxonomy Navigator implements a sophisticated **five-stage AI classification
 - Ensures data integrity before final selection
 - **No API calls** - purely validation processing
 
-### **Stage 5: Final Selection (gpt-4.1-nano)**
+### **Stage 5: Final Selection (gpt-4.1-mini)**
 - AI selects the single best match from the validated candidates
-- Uses enhanced model (gpt-4.1-nano) for better precision in final decision
+- Uses enhanced model (gpt-4.1-mini) for better precision in final decision
+- Hardcore prompting with explicit constraints prevents wrong selections
 - Structured prompting with 3-step reasoning process
 - Focuses on distinguishing main products from accessories
+- **Anti-hallucination measures**: Robust index validation and bounds checking
+- **Multiple fallback mechanisms**: Graceful handling of invalid AI responses
+- **Guaranteed valid results**: Final safety checks ensure valid category selection
 
