@@ -34,41 +34,33 @@ Use Cases:
 Output Format:
 Each classification shows:
 1. Product analysis header with product description
-2. Stage 1: AI-selected leaf nodes (up to 20, duplicates removed)
-3. Stage 2: Filtering statistics and most popular taxonomy layer
-4. Stage 3: AI-refined selection (up to 10 from filtered L1 taxonomy candidates)
-5. Stage 4: Validation of AI selections (remove hallucinations)
-6. Stage 5: Final AI selection from validated candidates
-7. Final result: [Product Description] followed by Final Category
+2. Stage 1: AI-selected L1 taxonomy categories (up to 3)
+3. Stage 2: AI-selected leaf nodes from chosen L1 taxonomies (up to 10)
+4. Stage 3: Final AI selection from the 10 candidates
+5. Final result: [Product Description] followed by Final Category
 
 Example Output:
   ==================== ANALYZING PRODUCT 1 ====================
   📦 iPhone 14 Pro: Smartphone with camera...
   
-  📋 STAGE 1 - AI selecting top 20 leaf nodes from 4722 total...
-  ✅ AI selected 15 leaf nodes: [list of categories]
+  📋 STAGE 1 - AI selecting top 3 L1 taxonomies from all categories...
+  ✅ AI selected 3 L1 categories: [Electronics, Hardware, Apparel]
   
-  📋 STAGE 2 - Filtering to most popular 1st taxonomy layer...
-  📊 Found 12 valid categories out of 15 AI-selected categories
-  ✅ Most popular layer: 'Electronics' - Filtered to 8 leaves
+  📋 STAGE 2 - AI selecting top 10 leaf nodes from chosen L1 taxonomies...
+  ✅ AI selected 10 leaf nodes from selected L1 categories
   
-  📋 STAGE 3 - AI refining selection to top 10 from 8 L1 taxonomy candidates...
-  ✅ AI refined selection - selected 8 leaf nodes from Electronics layer
-  
-  📋 STAGE 4 - Validating AI selections against taxonomy...
-  ✅ Validated 8 categories (no hallucinations detected)
-  
-  📋 STAGE 5 - AI selecting final match from 8 validated candidates...
+  📋 STAGE 3 - AI selecting final match from 10 candidates...
   🎯 FINAL RESULT: Electronics > Cell Phones > Smartphones
   
   [iPhone 14 Pro: Smartphone with camera...]
   Smartphones
 
 Recent Improvements (v5.0):
-- Updated for new 5-stage classification process
-- Added Stage 4 validation to prevent AI hallucinations
+- Updated for new 3-stage classification process
+- Stage 1: L1 taxonomy selection for better domain targeting
+- Stage 2: Leaf selection from chosen L1 taxonomies
+- Stage 3: Final selection with anti-hallucination measures using gpt-4.1
 - Enhanced visual separation between products for better readability
-- Updated stage numbering and documentation throughout
 - Improved error handling and user input validation
 - Better integration with updated taxonomy navigator engine
 
@@ -146,7 +138,7 @@ def extract_product_title(product_line: str) -> str:
         # No colon found, return the entire line as title
         return product_line.strip()
 
-def classify_product_with_stage1_display(navigator: TaxonomyNavigator, product_line: str, show_stage1_paths: bool = False) -> str:
+def classify_product_with_stage_display(navigator: TaxonomyNavigator, product_line: str, show_stage_paths: bool = False) -> str:
     """
     Classify a single product and optionally display the AI's selections at each stage.
     
@@ -156,100 +148,43 @@ def classify_product_with_stage1_display(navigator: TaxonomyNavigator, product_l
     Args:
         navigator (TaxonomyNavigator): Initialized taxonomy navigator
         product_line (str): Product description to classify
-        show_stage1_paths (bool): Whether to display AI selections at each stage
+        show_stage_paths (bool): Whether to display AI selections at each stage
         
     Returns:
         str: Final leaf category name, or "False" if no classification found
     """
     try:
-        if show_stage1_paths:
+        if show_stage_paths:
             print(f"\n🔍 STAGE-BY-STAGE AI SELECTIONS:")
             print("=" * 80)
             
-            # Stage 1: Get the AI's top 20 leaf selections
-            print(f"\n📋 STAGE 1 - AI selecting top 20 leaf nodes from {len(navigator._extract_leaf_nodes()[0])} total...")
-            selected_leaves = navigator.stage1_leaf_matching(product_line)
+            # Stage 1: Get the AI's top 3 L1 taxonomy selections
+            print(f"\n📋 STAGE 1 - AI selecting top 3 L1 taxonomies from all categories...")
+            selected_l1s = navigator.stage1_l1_selection(product_line)
             
-            print(f"\n✅ AI selected {len(selected_leaves)} leaf nodes:")
+            print(f"\n✅ AI selected {len(selected_l1s)} L1 categories:")
+            for i, l1_category in enumerate(selected_l1s, 1):
+                print(f"   {i:2d}. {l1_category}")
+            
+            # Stage 2: Show leaf selection from chosen L1 taxonomies
+            print(f"\n📋 STAGE 2 - AI selecting top 10 leaf nodes from chosen L1 taxonomies...")
+            selected_leaves = navigator.stage2_leaf_selection(product_line, selected_l1s)
+            
+            print(f"\n✅ AI selected {len(selected_leaves)} leaf nodes from selected L1 categories:")
+            
+            # Show the leaves with their L1 context
+            leaf_to_l1 = navigator._create_leaf_to_l1_mapping()
             for i, leaf in enumerate(selected_leaves, 1):
-                print(f"   {i:2d}. {leaf}")
+                l1_category = leaf_to_l1.get(leaf, "Unknown")
+                print(f"   {i:2d}. {leaf} (L1: {l1_category})")
             
-            # Stage 2: Show layer filtering results
-            print(f"\n📋 STAGE 2 - Filtering to most popular 1st taxonomy layer...")
-            
-            # Count how many of the AI-selected categories actually exist
-            leaf_to_path = navigator._create_leaf_to_path_mapping()
-            valid_count = sum(1 for leaf in selected_leaves if leaf in leaf_to_path)
-            print(f"📊 Found {valid_count} valid categories out of {len(selected_leaves)} AI-selected categories")
-            
-            filtered_leaves = navigator.stage2_layer_filtering(selected_leaves)
-            
-            # Show which layer was selected and the filtered results
-            if filtered_leaves:
-                # Get the layer name from the first filtered leaf
-                leaf_to_path = navigator._create_leaf_to_path_mapping()
-                if filtered_leaves[0] in leaf_to_path:
-                    first_layer = leaf_to_path[filtered_leaves[0]].split(" > ")[0]
-                    print(f"\n✅ Most popular layer: '{first_layer}' - Filtered to {len(filtered_leaves)} leaves:")
-                    for i, leaf in enumerate(filtered_leaves, 1):
-                        if leaf in leaf_to_path:
-                            full_path = leaf_to_path[leaf]
-                            print(f"   {i:2d}. {leaf} → {full_path}")
-                        else:
-                            print(f"   {i:2d}. {leaf}")
-                else:
-                    print(f"\n✅ Filtered to {len(filtered_leaves)} leaves:")
-                    for i, leaf in enumerate(filtered_leaves, 1):
-                        print(f"   {i:2d}. {leaf}")
-            else:
-                print("\n❌ No leaves remaining after filtering")
-            
-            # Stage 3: Show refined selection results with AI's actual selections
-            print(f"\n📋 STAGE 3 - AI refining selection to top 10 from {len(filtered_leaves)} L1 taxonomy candidates...")
-            print(f"💡 This is like Stage 1, but only with the filtered leaves from the dominant L1 taxonomy layer")
-            refined_leaves = navigator.stage3_refined_selection(product_line, filtered_leaves)
-            
-            if refined_leaves:
-                print(f"\n✅ AI refined selection - selected {len(refined_leaves)} leaf nodes:")
-                for i, leaf in enumerate(refined_leaves, 1):
-                    print(f"   {i:2d}. {leaf}")
-                
-                # Also show the full paths for context
-                print(f"\n📍 Full paths of AI-selected refined categories:")
-                for i, leaf in enumerate(refined_leaves, 1):
-                    if leaf in leaf_to_path:
-                        full_path = leaf_to_path[leaf]
-                        print(f"   {i:2d}. {leaf} → {full_path}")
-                    else:
-                        print(f"   {i:2d}. {leaf} → [Path not found]")
-            else:
-                print("\n❌ No leaves remaining after refined selection")
-            
-            # Stage 4: Show validation results
-            print(f"\n📋 STAGE 4 - Validating AI selections against taxonomy...")
-            print(f"💡 Ensuring AI didn't hallucinate any category names that don't exist")
-            validated_leaves = navigator.stage4_validation(refined_leaves)
-            
-            if validated_leaves:
-                invalid_count = len(refined_leaves) - len(validated_leaves)
-                if invalid_count > 0:
-                    print(f"\n⚠️  Validation removed {invalid_count} invalid/hallucinated categories")
-                    print(f"✅ Validated {len(validated_leaves)} categories:")
-                else:
-                    print(f"\n✅ Validated {len(validated_leaves)} categories (no hallucinations detected):")
-                
-                for i, leaf in enumerate(validated_leaves, 1):
-                    print(f"   {i:2d}. {leaf}")
-            else:
-                print("\n❌ No leaves remaining after validation")
-            
-            print(f"\n📋 STAGE 5 - AI selecting final match from {len(validated_leaves)} validated candidates...")
+            print(f"\n📋 STAGE 3 - AI selecting final match from {len(selected_leaves)} candidates...")
             print("=" * 80)
         
         # Perform the full four-stage classification
         paths, best_match_idx = navigator.navigate_taxonomy(product_line)
         
-        if show_stage1_paths and paths != [["False"]]:
+        if show_stage_paths and paths != [["False"]]:
             print(f"\n🎯 FINAL RESULT: {' > '.join(paths[best_match_idx])}")
             print("=" * 80)
         
@@ -278,15 +213,13 @@ def main():
 Examples:
   %(prog)s                                          # Use default files
   %(prog)s --products-file my_products.txt          # Custom products file
-  %(prog)s --model gpt-4.1-nano                     # Use different model for Stages 1&3
-  %(prog)s --show-stage1-paths                      # Display AI selections at each stage
+  %(prog)s --model gpt-4.1-mini                     # Use different model for stages 1&4
+  %(prog)s --show-stage-paths                       # Display AI selections at each stage
   
-5-Stage Classification Process:
-  Stage 1: AI selects top 20 leaf nodes from all 4,722 categories
-  Stage 2: Algorithmic filtering to most popular taxonomy layer
-  Stage 3: AI refines to top 10 categories from filtered L1 taxonomy candidates
-  Stage 4: Validation of AI selections against taxonomy
-  Stage 5: AI final selection using enhanced model (gpt-4.1-nano)
+3-Stage Classification Process:
+  Stage 1: AI selects top 3 L1 taxonomy categories (gpt-4.1-mini)
+  Stage 2: AI selects top 10 leaf nodes from chosen L1s (gpt-4.1-nano)
+  Stage 3: AI final selection from 10 candidates (gpt-4.1 + anti-hallucination)
   
 Output Format:
   Each line shows: "Product Title: Leaf Category"
@@ -306,13 +239,13 @@ Output Format:
                        help='Taxonomy file path (default: data/taxonomy.en-US.txt)')
     
     # Model configuration
-    parser.add_argument('--model', default='gpt-4.1-nano', 
-                       help='OpenAI model for classification (default: gpt-4.1-nano)')
+    parser.add_argument('--model', default='gpt-4.1-mini', 
+                       help='OpenAI model for stages 1 and 4 (default: gpt-4.1-mini)')
     parser.add_argument('--api-key', 
                        help='OpenAI API key (optional if set in environment or file)')
     
     # Display options
-    parser.add_argument('--show-stage1-paths', action='store_true',
+    parser.add_argument('--show-stage-paths', action='store_true',
                        help='Display AI selections at each stage of classification')
     parser.add_argument('--verbose', action='store_true',
                        help='Enable verbose logging for debugging')
@@ -345,9 +278,9 @@ Output Format:
     
     args = parser.parse_args()
     
-    # Override show_stage1_paths if running directly
+    # Override show_stage_paths if running directly
     if len(sys.argv) == 1:
-        args.show_stage1_paths = show_stage_paths_default
+        args.show_stage_paths = show_stage_paths_default
         args.verbose = verbose_default
     
     # Configure logging based on verbose flag
@@ -404,8 +337,8 @@ Output Format:
         
         # Process each selected product and display in the requested format
         for i, product_line in enumerate(selected_products):
-            # Show Stage 1 paths for every product if requested (not just the first one)
-            show_paths = args.show_stage1_paths
+            # Show Stage paths for every product if requested (not just the first one)
+            show_paths = args.show_stage_paths
             
             if show_paths:
                 print(f"\n{'='*20} ANALYZING PRODUCT {i+1} {'='*20}")
@@ -413,7 +346,7 @@ Output Format:
                 print("=" * 100)
             
             # Classify the product
-            final_leaf = classify_product_with_stage1_display(navigator, product_line, show_paths)
+            final_leaf = classify_product_with_stage_display(navigator, product_line, show_paths)
             
             # Display in the exact format requested: [Input] then Leaf Category
             print(f"[{product_line}]")

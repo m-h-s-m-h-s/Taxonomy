@@ -136,15 +136,15 @@ class TestTaxonomyNavigator(unittest.TestCase):
         self.assertEqual(len(validated), 2)
 
     def test_stage5_final_selection(self):
-        """Test Stage 5: Final selection with anti-hallucination measures."""
+        """Test Stage 5: Final selection with anti-hallucination measures and failure handling."""
         navigator = TaxonomyNavigator(self.temp_taxonomy.name, "dummy_api_key")
         
         # Test with valid candidates
         validated_leaves = ["Smartphones", "Cell Phones"]
         result = navigator.stage5_final_selection("iPhone 14: Smartphone", validated_leaves)
         
-        # Should return a valid index (0 or 1)
-        self.assertIn(result, [0, 1])
+        # Should return a valid index (0 or 1) or -1 for failure
+        self.assertTrue(result in [0, 1] or result == -1)
         self.assertIsInstance(result, int)
         
         # Test with single candidate
@@ -152,17 +152,16 @@ class TestTaxonomyNavigator(unittest.TestCase):
         result = navigator.stage5_final_selection("iPhone 14: Smartphone", single_candidate)
         self.assertEqual(result, 0)  # Should return 0 for single candidate
         
-        # Test with empty list (edge case)
+        # Test with empty list (edge case) - should return -1 for failure
         result = navigator.stage5_final_selection("iPhone 14: Smartphone", [])
-        self.assertEqual(result, 0)  # Should default to 0
+        self.assertEqual(result, -1)  # Should return -1 for failure
         
-        # Test anti-hallucination: result should always be within bounds
+        # Test anti-hallucination: result should always be valid or -1 for failure
         test_candidates = ["Smartphones", "Cell Phones", "Mobile Devices"]
         result = navigator.stage5_final_selection("iPhone 14: Smartphone", test_candidates)
-        self.assertGreaterEqual(result, 0)
-        self.assertLess(result, len(test_candidates))
+        self.assertTrue((0 <= result < len(test_candidates)) or result == -1)
         
-        print("✅ Stage 5 final selection with anti-hallucination measures working correctly")
+        print("✅ Stage 5 final selection with anti-hallucination measures and failure handling working correctly")
 
     @patch('openai.OpenAI')
     def test_navigate_taxonomy_full_process(self, mock_openai):
@@ -223,7 +222,7 @@ class TestTaxonomyNavigator(unittest.TestCase):
         os.unlink(temp_output_path)
 
     def test_parse_selection_number_robust(self):
-        """Test robust parsing of AI selection numbers with anti-hallucination measures."""
+        """Test robust parsing of AI selection numbers with anti-hallucination measures and failure handling."""
         navigator = TaxonomyNavigator(self.temp_taxonomy.name, "dummy_api_key")
         
         # Test valid numbers
@@ -242,20 +241,25 @@ class TestTaxonomyNavigator(unittest.TestCase):
         
         # Test invalid input (should default to 0)
         self.assertEqual(navigator._parse_selection_number("invalid", 3), 0)
-        self.assertEqual(navigator._parse_selection_number("", 3), 0)
         self.assertEqual(navigator._parse_selection_number("abc", 3), 0)
         
         # Test edge cases
         self.assertEqual(navigator._parse_selection_number("1.5", 3), 0)  # Decimal
         self.assertEqual(navigator._parse_selection_number("-1", 3), 0)  # Negative
         
-        print("✅ Robust selection number parsing with anti-hallucination measures working correctly")
+        # Test complete failure cases (should return -1)
+        self.assertEqual(navigator._parse_selection_number("", 3), -1)  # Empty string
+        self.assertEqual(navigator._parse_selection_number("error", 3), -1)  # Error response
+        self.assertEqual(navigator._parse_selection_number("false", 3), -1)  # False response
+        self.assertEqual(navigator._parse_selection_number("none", 3), -1)  # None response
+        
+        print("✅ Robust selection number parsing with anti-hallucination measures and failure handling working correctly")
 
     def test_anti_hallucination_comprehensive(self):
-        """Comprehensive test of all anti-hallucination measures in the system."""
+        """Comprehensive test of all anti-hallucination measures in the system including failure handling."""
         navigator = TaxonomyNavigator(self.temp_taxonomy.name, "dummy_api_key")
         
-        print("🔒 Testing comprehensive anti-hallucination measures...")
+        print("🔒 Testing comprehensive anti-hallucination measures with failure handling...")
         
         # Test Stage 4 validation with mix of valid and invalid categories
         test_categories = ["Smartphones", "Laptops", "InvalidCategory", "Athletic Shoes", "AnotherInvalid"]
@@ -271,20 +275,24 @@ class TestTaxonomyNavigator(unittest.TestCase):
         for list_size in [1, 2, 3, 5, 10]:
             for test_input in ["1", "999", "invalid", "", "-1"]:
                 result = navigator._parse_selection_number(test_input, list_size)
-                self.assertGreaterEqual(result, 0)
-                self.assertLess(result, list_size)
+                # Should be valid index OR -1 for complete failure
+                self.assertTrue((0 <= result < list_size) or result == -1)
         
-        # Test Stage 5 always returns valid indices
+        # Test Stage 5 always returns valid indices or -1 for failure
         test_candidates = ["Smartphones", "Cell Phones", "Mobile Devices"]
         result = navigator.stage5_final_selection("iPhone 14: Smartphone", test_candidates)
-        self.assertGreaterEqual(result, 0)
-        self.assertLess(result, len(test_candidates))
+        self.assertTrue((0 <= result < len(test_candidates)) or result == -1)
+        
+        # Test Stage 5 failure case
+        result_failure = navigator.stage5_final_selection("iPhone 14: Smartphone", [])
+        self.assertEqual(result_failure, -1)
         
         print("✅ All anti-hallucination measures working correctly")
         print("  ✅ Stage 4 validation removes invalid categories")
         print("  ✅ Robust index validation prevents out-of-bounds access")
-        print("  ✅ Stage 5 guarantees valid category selection")
+        print("  ✅ Stage 5 guarantees valid category selection or returns -1 for failure")
         print("  ✅ Multiple fallback mechanisms handle edge cases")
+        print("  ✅ Complete failures return -1 instead of incorrect defaults")
 
 if __name__ == '__main__':
     unittest.main() 
