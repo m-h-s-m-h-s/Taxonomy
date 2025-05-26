@@ -210,7 +210,7 @@ def stage3_final_selection(self, product_info: str, selected_leaves: List[str]) 
             {"role": "user", "content": prompt}
         ],
         temperature=0,  # Deterministic selection
-        top_p=1        # Allow full token distribution
+        top_p=0        # Deterministic selection
     )
     
     # Parse number and validate bounds
@@ -225,7 +225,7 @@ def stage3_final_selection(self, product_info: str, selected_leaves: List[str]) 
 - **Input**: Product info + numbered list of filtered leaf nodes
 - **Output**: Index of selected category (0-based) OR -1 for complete failure
 - **Anti-Hallucination**: Professional prompting + robust bounds checking
-- **Model Settings**: temperature=0 for deterministic selection, top_p=1 for full token distribution
+- **Model Settings**: temperature=0 and top_p=0 for deterministic selection
 - **Failure Handling**: Returns "False" when AI completely fails
 
 ## Anti-Hallucination Architecture
@@ -344,13 +344,13 @@ Final Classification Result
 
 ### Model Selection Rationale
 
-| Stage | Model | Reasoning |
-|-------|-------|-----------|
-| 1 | `gpt-4.1-mini` | Critical domain targeting requires enhanced reasoning |
-| 2A | `gpt-4.1-nano` | Efficient processing of pre-filtered categories |
-| 2B | `gpt-4.1-nano` | Efficient processing of pre-filtered categories |
-| 2C | `gpt-4.1-nano` | Efficient processing of pre-filtered categories |
-| 3 | `gpt-4.1` | Enhanced model for critical final selection |
+| Stage | Model | Reasoning | Settings |
+|-------|-------|-----------|----------|
+| 1 | `gpt-4.1-mini` | Critical domain targeting requires enhanced reasoning | temp=0, top_p=0 |
+| 2A | `gpt-4.1-nano` | Efficient processing of pre-filtered categories | temp=0, top_p=0 |
+| 2B | `gpt-4.1-nano` | Efficient processing of pre-filtered categories | temp=0, top_p=0 |
+| 2C | `gpt-4.1-nano` | Efficient processing of pre-filtered categories | temp=0, top_p=0 |
+| 3 | `gpt-4.1` | Enhanced model for critical final selection | temp=0, top_p=0 |
 
 ### Scalability Features
 - **Progressive Filtering**: Reduces complexity at each stage

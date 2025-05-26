@@ -725,8 +725,8 @@ class TaxonomyNavigator:
                 {"role": "system", "content": "You are a product categorization assistant..."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0,
-            top_p=1
+            temperature=0,  # Deterministic selection
+            top_p=0        # Deterministic selection
         )
         
         # Parse number and validate bounds

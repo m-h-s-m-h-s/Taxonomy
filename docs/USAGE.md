@@ -142,7 +142,7 @@ The Taxonomy Navigator uses a sophisticated five-stage process with aggressive a
 - **Input**: Product info + numbered list of filtered leaf nodes
 - **Output**: Index of selected category (0-based) OR -1 for complete failure
 - **Anti-Hallucination**: Professional prompting + robust bounds checking
-- **Model Settings**: temperature=0 for deterministic selection, top_p=1 for full token distribution
+- **Model Settings**: temperature=0 and top_p=0 for deterministic selection
 
 ## Command Line Interface
 
@@ -325,7 +325,7 @@ The system optimizes cost and performance using different models:
 | 2A | `gpt-4.1-nano` | First L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
 | 2B | `gpt-4.1-nano` | Second L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
 | 2C | `gpt-4.1-nano` | Third L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
-| 3 | `gpt-4.1` | Final selection | Higher | Enhanced accuracy | temp=0, top_p=1 |
+| 3 | `gpt-4.1` | Final selection | Higher | Enhanced accuracy | temp=0, top_p=0 |
 
 ### Model Configuration
 ```python
