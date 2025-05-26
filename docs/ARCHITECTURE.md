@@ -235,14 +235,14 @@ for category in refined_leaves:
 - Provides visibility into AI hallucination patterns
 - No API calls required (algorithmic processing)
 
-### Stage 5: Final Selection (gpt-4.1-mini)
+### Stage 5: Final Selection (gpt-4.1-nano)
 
 **Purpose**: Select the single best match from the validated leaves using enhanced model precision.
 
 **Process**:
 1. **Candidate Formatting**: Converts validated leaf names to numbered options
 2. **Structured Prompting**: Uses a multi-step approach for product identification
-3. **API Request**: Sends structured prompt to gpt-4.1-mini
+3. **API Request**: Sends structured prompt to gpt-4.1-nano
 4. **Selection Parsing**: Extracts the final selection and converts to 0-based index
 
 **Structured Prompting Strategy**:
@@ -267,7 +267,7 @@ Return ONLY the NUMBER of the most appropriate category, with no additional text
 ```
 
 **Model Configuration**:
-- Model: `gpt-4.1-mini` (enhanced precision for final decision)
+- Model: `gpt-4.1-nano` (enhanced precision for final decision)
 - Temperature: 0 (deterministic results)
 - Top_p: 0 (deterministic results)
 
@@ -312,7 +312,7 @@ Return ONLY the NUMBER of the most appropriate category, with no additional text
 4. **Refined Selection**: Stage 3 provides focused input for validation and final decision
 5. **Validation Layer**: Stage 4 ensures data integrity without API costs
 6. **Optimized Prompting**: Minimizes token usage while maintaining accuracy
-7. **Mixed Model Usage**: gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
+7. **Mixed Model Usage**: gpt-4.1-nano for initial stages, gpt-4.1-nano for final precision
 8. **Caching Potential**: Architecture supports future caching implementation
 
 ### Scalability Features
@@ -380,7 +380,7 @@ The current architecture follows a "simple and focused" approach:
 1. **Maximum Efficiency**: Progressive filtering from thousands → 20 → filtered L1 → 10 → validated → 1
 2. **Cost Optimization**: Three API calls (Stages 1, 3, and 5), Stages 2 and 4 are algorithmic
 3. **Improved Accuracy**: Each stage focuses on a specific level of granularity
-4. **Enhanced Precision**: Final stage uses gpt-4.1-mini for better decision quality
+4. **Enhanced Precision**: Final stage uses gpt-4.1-nano for better decision quality
 5. **Data Integrity**: Stage 4 validation prevents AI hallucinations
 6. **Scalability**: Handles large taxonomies without overwhelming the AI
 7. **Consistency**: Layer filtering ensures results stay within the same L1 taxonomy domain

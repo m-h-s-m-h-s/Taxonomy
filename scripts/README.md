@@ -29,7 +29,7 @@ Launch an interactive interface for testing multiple products in a session:
 - ✅ Session statistics and result saving (interactive mode)
 - ✅ JSON output with comprehensive metadata
 - ✅ Configurable AI models and taxonomy files
-- ✅ Uses gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
+- ✅ Uses gpt-4.1-nano for initial stages, gpt-4.1-nano for final precision
 - ✅ Stage 4 validation prevents AI hallucinations
 
 ---
@@ -116,11 +116,11 @@ results/
 
 Both scripts support these common options:
 - `--taxonomy FILE` - Custom taxonomy file
-- `--model MODEL` - Different AI model for Stages 1&3 (gpt-4.1-nano, gpt-4.1-mini, etc.)
+- `--model MODEL` - Different AI model for Stages 1&3 (gpt-4.1-nano, gpt-4.1-nano, etc.)
 - `--verbose` - Detailed logging for debugging
 - `--help` - Show usage information
 
-**Note**: Stage 5 (final selection) always uses gpt-4.1-mini for enhanced precision.
+**Note**: Stage 5 (final selection) always uses gpt-4.1-nano for enhanced precision.
 
 ---
 
@@ -147,7 +147,7 @@ MacBook Pro: Laptop computer for professional use
 - **Stage 2**: Algorithmic filtering to most popular L1 taxonomy layer
 - **Stage 3**: AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)
 - **Stage 4**: Validation to ensure no AI hallucinations (algorithmic)
-- **Stage 5**: AI final selection using enhanced model (gpt-4.1-mini)
+- **Stage 5**: AI final selection using enhanced model (gpt-4.1-nano)
 
 **When to use which:**
 - Need detailed analysis? → Use single product script

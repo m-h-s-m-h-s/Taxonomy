@@ -278,7 +278,7 @@ def main():
 Examples:
   %(prog)s                                          # Use default files
   %(prog)s --products-file my_products.txt          # Custom products file
-  %(prog)s --model gpt-4.1-mini                     # Use different model for Stages 1&3
+  %(prog)s --model gpt-4.1-nano                     # Use different model for Stages 1&3
   %(prog)s --show-stage1-paths                      # Display AI selections at each stage
   
 5-Stage Classification Process:
@@ -286,7 +286,7 @@ Examples:
   Stage 2: Algorithmic filtering to most popular taxonomy layer
   Stage 3: AI refines to top 10 categories from filtered L1 taxonomy candidates
   Stage 4: Validation of AI selections against taxonomy
-  Stage 5: AI final selection using enhanced model (gpt-4.1-mini)
+  Stage 5: AI final selection using enhanced model (gpt-4.1-nano)
   
 Output Format:
   Each line shows: "Product Title: Leaf Category"

@@ -51,10 +51,10 @@ of categories to a single best match:
    - Key Feature: Data integrity check to prevent hallucinations
    - Cost: No API calls - purely validation processing
 
-🏆 STAGE 5: FINAL SELECTION (AI-Powered with Enhanced Model)
+🏆 STAGE 5: FINAL SELECTION (AI-Powered with Consistent Model)
    - Purpose: Make the final decision with maximum precision from validated categories
    - Input: Product info + validated leaf nodes from Stage 4
-   - AI Model: gpt-4.1-mini (enhanced model for better final decision quality)
+   - AI Model: gpt-4.1-nano (consistent model across all AI stages)
    - Process: 
      * Present validated categories as numbered options
      * Use structured 3-step reasoning prompt
@@ -70,7 +70,7 @@ of categories to a single best match:
 ✅ Accuracy: Each stage focuses on appropriate level of granularity
 ✅ Consistency: Layer filtering ensures results stay within same L1 taxonomy domain
 ✅ Scalability: Handles large taxonomies without overwhelming the AI
-✅ Precision: Final stage uses enhanced model for better decision quality
+✅ Model Consistency: Uses gpt-4.1-nano consistently across all AI stages
 
 === KEY TECHNICAL FEATURES ===
 
@@ -80,7 +80,7 @@ of categories to a single best match:
 - Duplicate Removal: Multiple stages of deduplication for clean results
 - Validation: Ensures all returned categories exist in the actual taxonomy
 - Robust Tie Handling: Stage 2 includes all categories from tied taxonomy layers
-- Mixed Model Strategy: Cost-effective nano model for initial stages, mini for final precision
+- Consistent Model Strategy: Uses gpt-4.1-nano across all AI stages for consistency
 - Hallucination Prevention: Stage 4 validation ensures data integrity
 
 Author: AI Assistant
@@ -125,7 +125,7 @@ class TaxonomyNavigator:
     
     Key Improvements in v5.0:
     - Added Stage 4 validation for data integrity
-    - Changed Stage 5 (final selection) to use gpt-4.1-mini for enhanced precision
+    - Changed Stage 5 (final selection) to use gpt-4.1-nano for enhanced precision
     - Updated all stage numbering and comprehensive logging
     - Enhanced error handling throughout the five-stage pipeline
     - Maintained backward compatibility with existing method signatures
@@ -133,7 +133,7 @@ class TaxonomyNavigator:
     Attributes:
         taxonomy_file (str): Path to the taxonomy file in Google Product Taxonomy format
         model (str): OpenAI model used for Stages 1 and 3 (default: gpt-4.1-nano)
-        final_model (str): OpenAI model used for Stage 5 (default: gpt-4.1-mini)
+        final_model (str): OpenAI model used for Stage 5 (default: gpt-4.1-nano)
         taxonomy_tree (Dict): Hierarchical representation of the taxonomy
         all_paths (List[str]): All taxonomy paths from the file
         leaf_markers (List[bool]): Boolean markers indicating which paths are leaf nodes
@@ -161,7 +161,7 @@ class TaxonomyNavigator:
         """
         self.taxonomy_file = taxonomy_file
         self.model = model
-        self.final_model = "gpt-4.1-mini"  # Stage 5 uses mini model for enhanced precision
+        self.final_model = "gpt-4.1-nano"  # Stage 5 uses nano model for consistency
         
         # Build the taxonomy tree and identify leaf nodes
         self.taxonomy_tree = self._build_taxonomy_tree()
@@ -711,19 +711,19 @@ class TaxonomyNavigator:
         Stage 5: Select the single best match from the validated leaves.
         
         This method implements the fifth stage of classification using enhanced prompting
-        and gpt-4.1-mini for the final selection from the top 10 validated candidates.
+        and gpt-4.1-nano for the final selection from the top 10 validated candidates.
         The mini model provides enhanced precision for the final decision.
         
         Process:
         1. Construct structured prompt with 3-step reasoning process
         2. Present validated categories as numbered options (leaf names only)
-        3. AI identifies core product and selects best match using gpt-4.1-mini
+        3. AI identifies core product and selects best match using gpt-4.1-nano
         4. Parse AI response and convert to 0-based index
         5. Return index of selected category
         
         Improvements in v5.0:
         - Renamed from stage4_final_selection to stage5_final_selection
-        - Changed from gpt-4.1-nano to gpt-4.1-mini for enhanced final selection accuracy
+        - Changed from gpt-4.1-nano to gpt-4.1-nano for enhanced final selection accuracy
         - Updated logging and documentation for 5-stage process
         - Enhanced error handling with robust number parsing
 
@@ -771,9 +771,9 @@ class TaxonomyNavigator:
         prompt += "\nFirst identify the core product in a sentence, then select the number of the most appropriate category.\nReturn ONLY the NUMBER of the most appropriate category, with no additional text."
         
         try:
-            # Make API call with gpt-4.1-mini for enhanced final selection accuracy
+            # Make API call with gpt-4.1-nano for enhanced final selection accuracy
             response = self.client.chat.completions.create(
-                model=self.final_model,  # Using mini model for Stage 5
+                model=self.final_model,  # Using nano model for Stage 5
                 messages=[
                     {
                         "role": "system", 
@@ -935,7 +935,7 @@ class TaxonomyNavigator:
         
         Improvements in v5.0:
         - Added Stage 4 validation for data integrity
-        - Updated Stage 5 to use gpt-4.1-mini for enhanced precision
+        - Updated Stage 5 to use gpt-4.1-nano for enhanced precision
         - Enhanced error handling with detailed logging for all five stages
         - Improved tie-handling in Stage 2
         - Maintained backward compatibility with existing return format

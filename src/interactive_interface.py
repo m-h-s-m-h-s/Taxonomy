@@ -25,7 +25,7 @@ The system uses a sophisticated five-stage approach:
 2. Layer Filtering: Algorithmic filtering to most popular L1 taxonomy layer
 3. Refined Selection: AI refines to top 10 categories from filtered L1 taxonomy candidates
 4. Validation: Ensures AI didn't hallucinate any category names that don't exist
-5. Final Selection: AI selects best match using enhanced model (gpt-4.1-mini)
+5. Final Selection: AI selects best match using enhanced model (gpt-4.1-nano)
 
 Author: AI Assistant
 Version: 5.0
@@ -121,7 +121,7 @@ class TaxonomyInterface:
         print("  2. Algorithmic filtering to most popular L1 taxonomy layer")
         print("  3. AI refines to top 10 categories from filtered L1 taxonomy candidates")
         print("  4. Validation: Ensures AI didn't hallucinate any category names that don't exist")
-        print("  5. AI final selection using enhanced model (gpt-4.1-mini)")
+        print("  5. AI final selection using enhanced model (gpt-4.1-nano)")
         print("\n" + "="*70 + "\n")
         
     def display_help(self):
@@ -341,7 +341,7 @@ def main():
 Examples:
   %(prog)s                                    # Basic interactive mode
   %(prog)s --save-results                     # Save results to file
-  %(prog)s --verbose --model gpt-4.1-mini    # Verbose mode with different model
+  %(prog)s --verbose --model gpt-4.1-nano    # Verbose mode with different model
   %(prog)s --taxonomy-file custom.txt         # Use custom taxonomy file
         """
     )

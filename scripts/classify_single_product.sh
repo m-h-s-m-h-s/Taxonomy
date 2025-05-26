@@ -15,7 +15,7 @@
 # - Verbose logging option for debugging
 # - Automatic results directory creation
 # - Clear success/failure feedback
-# - Uses gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
+# - Uses gpt-4.1-nano for initial stages, gpt-4.1-nano for final precision
 # - Stage 4 validation prevents AI hallucinations
 #
 # 5-Stage Classification Process:
@@ -23,7 +23,7 @@
 # 2. Algorithmic filtering to most popular L1 taxonomy layer
 # 3. AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)
 # 4. Validation to ensure no AI hallucinations (algorithmic)
-# 5. AI final selection using enhanced model (gpt-4.1-mini)
+# 5. AI final selection using enhanced model (gpt-4.1-nano)
 #
 # Usage Examples:
 #   # Command-line mode (single product)
@@ -82,7 +82,7 @@ usage() {
     echo "  -o, --output FILE              Output JSON file for results"
     echo "                                 (default: ../results/taxonomy_results.json)"
     echo "  -m, --model MODEL              OpenAI model for Stages 1&3"
-    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-mini)"
+    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-nano)"
     echo "  -v, --verbose                  Enable verbose logging for debugging"
     echo "  -h, --help                     Show this help message"
     echo ""
@@ -91,7 +91,7 @@ usage() {
     echo "  Stage 2: Algorithmic filtering to most popular L1 taxonomy layer"
     echo "  Stage 3: AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)"
     echo "  Stage 4: Validation to ensure no AI hallucinations (algorithmic)"
-    echo "  Stage 5: AI final selection using enhanced model (gpt-4.1-mini)"
+    echo "  Stage 5: AI final selection using enhanced model (gpt-4.1-nano)"
     echo ""
     echo "Examples:"
     echo "  # Single product classification"
@@ -103,7 +103,7 @@ usage() {
     echo "  # Interactive mode with result saving"
     echo "  $0 -i --save-results --verbose"
     echo ""
-    echo "  # Custom model for Stages 1&3 (Stage 4 always uses gpt-4.1-mini)"
+    echo "  # Custom model for Stages 1&3 (Stage 4 always uses gpt-4.1-nano)"
     echo "  $0 -n \"Nike Air Max\" -d \"Running shoes\" -m gpt-4o -o my_results.json"
     echo ""
     echo "Interactive Mode Features:"
@@ -286,7 +286,7 @@ else
 fi
 
 echo -e "${GREEN}📁 Taxonomy file: $TAXONOMY_FILE${NC}"
-echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-mini${NC}"
+echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-nano${NC}"
 
 if [ -n "$VERBOSE" ]; then
     echo -e "${GREEN}🔍 Verbose logging enabled${NC}"

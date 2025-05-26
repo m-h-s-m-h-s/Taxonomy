@@ -20,7 +20,7 @@
 # 2. Algorithmic filtering to most popular L1 taxonomy layer
 # 3. AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)
 # 4. Validation to ensure no AI hallucinations (algorithmic)
-# 5. AI final selection using enhanced model (gpt-4.1-mini)
+# 5. AI final selection using enhanced model (gpt-4.1-nano)
 #
 # Use Cases:
 # - Quick validation of classification accuracy
@@ -66,7 +66,7 @@ usage() {
     echo "  -t, --taxonomy FILE            Taxonomy file path"
     echo "                                 (default: ../data/taxonomy.en-US.txt)"
     echo "  -m, --model MODEL              OpenAI model for Stages 1&3"
-    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-mini)"
+    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-nano)"
     echo "  -v, --verbose                  Enable verbose logging for debugging"
     echo "  -h, --help                     Show this help message"
     echo ""
@@ -75,7 +75,7 @@ usage() {
     echo "  Stage 2: Algorithmic filtering to most popular L1 taxonomy layer"
     echo "  Stage 3: AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)"
     echo "  Stage 4: Validation to ensure no AI hallucinations (algorithmic)"
-    echo "  Stage 5: AI final selection using enhanced model (gpt-4.1-mini)"
+    echo "  Stage 5: AI final selection using enhanced model (gpt-4.1-nano)"
     echo ""
     echo "Examples:"
     echo "  # Simple batch testing with default products"
@@ -84,7 +84,7 @@ usage() {
     echo "  # Custom products file with verbose logging"
     echo "  $0 --products my_products.txt --verbose"
     echo ""
-    echo "  # Custom model for Stages 1&3 (Stage 4 always uses gpt-4.1-mini)"
+    echo "  # Custom model for Stages 1&3 (Stage 4 always uses gpt-4.1-nano)"
     echo "  $0 --products my_products.txt --model gpt-4o"
     echo ""
     echo "Output Format:"
@@ -204,7 +204,7 @@ product_count=$(count_products "$PRODUCTS_FILE")
 echo -e "${GREEN}📦 Products file: $PRODUCTS_FILE${NC}"
 echo -e "${GREEN}📊 Products to test: $product_count${NC}"
 echo -e "${GREEN}📁 Taxonomy file: $TAXONOMY_FILE${NC}"
-echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-mini${NC}"
+echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-nano${NC}"
 
 if [ -n "$VERBOSE" ]; then
     echo -e "${GREEN}🔍 Verbose logging enabled${NC}"

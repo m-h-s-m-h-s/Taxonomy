@@ -121,7 +121,7 @@ The system uses a sophisticated five-stage approach for maximum efficiency and a
    - Ensures data integrity before final selection
    - Logs validation statistics (valid vs invalid categories)
 
-5. **Final Selection** (gpt-4.1-mini):
+5. **Final Selection** (gpt-4.1-nano):
    - Uses sophisticated prompting to identify the exact product type
    - AI selects the single best match from the validated candidates
    - Enhanced model provides better precision for final decision
