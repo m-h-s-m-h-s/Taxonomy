@@ -1,0 +1,286 @@
+[
+{
+  "product_info": "Apple iPhone: Smartphone with 6.1-inch display and dual camera system",
+  "category_path": [
+    "Electronics",
+    "Electronics Accessories",
+    "Mobile Phone & Tablet Tripods & Monopods"
+  ],
+  "full_path": "Electronics > Electronics Accessories > Mobile Phone & Tablet Tripods & Monopods",
+  "leaf_category": "Mobile Phone & Tablet Tripods & Monopods"
+},
+{
+  "product_info": "Apple iPhone: Smartphone with 6.1-inch display",
+  "category_path": [
+    "Electronics",
+    "Audio",
+    "Audio Accessories",
+    "MP3 Player Accessories",
+    "MP3 Player & Mobile Phone Accessory Sets"
+  ],
+  "full_path": "Electronics > Audio > Audio Accessories > MP3 Player Accessories > MP3 Player & Mobile Phone Accessory Sets",
+  "leaf_category": "MP3 Player & Mobile Phone Accessory Sets"
+},
+{
+  "product_info": "xyzpdq123: This is a completely made-up product that doesn't exist",
+  "category_path": [
+    "Electronics",
+    "Arcade Equipment",
+    "Video Game Arcade Cabinets"
+  ],
+  "full_path": "Electronics > Arcade Equipment > Video Game Arcade Cabinets",
+  "leaf_category": "Video Game Arcade Cabinets"
+},
+{
+  "product_info": "Wireless noise-canceling headphones",
+  "category_path": [
+    "Apparel & Accessories",
+    "Clothing Accessories",
+    "Sunglasses"
+  ],
+  "full_path": "Apparel & Accessories > Clothing Accessories > Sunglasses",
+  "leaf_category": "Sunglasses"
+},
+{
+  "product_info": "Wireless noise-canceling headphones with 30-hour battery life",
+  "category_path": "False",
+  "full_path": "False",
+  "leaf_category": "False"
+},
+{
+  "product_info": "Wireless noise-canceling headphones with 30-hour battery life",
+  "category_path": [
+    "Electronics",
+    "Audio",
+    "Audio Components",
+    "Headphones & Headsets",
+    "Headphones"
+  ],
+  "full_path": "Electronics > Audio > Audio Components > Headphones & Headsets > Headphones",
+  "leaf_category": "Headphones"
+},
+{
+  "product_info": "Wireless noise-canceling headphones with 30-hour battery life",
+  "category_path": [
+    "Electronics",
+    "Audio",
+    "Audio Components",
+    "Audio & Video Receivers"
+  ],
+  "full_path": "Electronics > Audio > Audio Components > Audio & Video Receivers",
+  "leaf_category": "Audio & Video Receivers"
+},
+{
+  "product_info": "Black leather men's wallet with RFID protection",
+  "category_path": [
+    "Apparel & Accessories",
+    "Handbags, Wallets & Cases",
+    "Wallets & Money Clips"
+  ],
+  "full_path": "Apparel & Accessories > Handbags, Wallets & Cases > Wallets & Money Clips",
+  "leaf_category": "Wallets & Money Clips"
+},
+{
+  "product_info": "Wireless noise-canceling headphones with 30-hour battery life",
+  "category_path": [
+    "Electronics",
+    "Audio",
+    "Audio Components",
+    "Headphones & Headsets",
+    "Headphones"
+  ],
+  "full_path": "Electronics > Audio > Audio Components > Headphones & Headsets > Headphones",
+  "leaf_category": "Headphones"
+},
+{
+  "product_info": "2025-05-25 21:07:06,350 - taxonomy_navigator - INFO - Building taxonomy tree from taxonomy.en-US.txt",
+  "category_path": [
+    "Electronics",
+    "Audio",
+    "Audio Components",
+    "Signal Processors",
+    "Effects Processors"
+  ],
+  "full_path": "Electronics > Audio > Audio Components > Signal Processors > Effects Processors",
+  "leaf_category": "Effects Processors"
+},
+{
+  "product_info": "2025-05-25 21:07:06,487 - taxonomy_utils - INFO - Using API key from api_key.txt file",
+  "category_path": [
+    "Media",
+    "Product Manuals",
+    "Electronics Manuals"
+  ],
+  "full_path": "Media > Product Manuals > Electronics Manuals",
+  "leaf_category": "Electronics Manuals"
+},
+{
+  "product_info": "2025-05-25 21:07:06,602 - taxonomy_interface - ERROR - Error initializing navigator: 'TaxonomyNavigator' object has no attribute 'paths'",
+  "category_path": [
+    "Hardware",
+    "Tools",
+    "Measuring Tools & Sensors",
+    "Probes & Finders"
+  ],
+  "full_path": "Hardware > Tools > Measuring Tools & Sensors > Probes & Finders",
+  "leaf_category": "Probes & Finders"
+},
+{
+  "product_info": "iPhone 14 Pro: Smartphone with advanced camera system",
+  "best_match_index": 0,
+  "matches": [
+    {
+      "category_path": [
+        "Electronics",
+        "Communications",
+        "Telephony",
+        "Mobile Phones",
+        "Contract Mobile Phones"
+      ],
+      "full_path": "Electronics > Communications > Telephony > Mobile Phones > Contract Mobile Phones",
+      "leaf_category": "Contract Mobile Phones",
+      "is_best_match": true
+    },
+    {
+      "category_path": [
+        "Electronics",
+        "Components",
+        "Electronics Component Connectors"
+      ],
+      "full_path": "Electronics > Components > Electronics Component Connectors",
+      "leaf_category": "Electronics Component Connectors",
+      "is_best_match": false
+    }
+  ]
+},
+{
+  "product_info": "Xbox Wireless Controller: Gaming controller with Bluetooth connectivity",
+  "best_match_index": 0,
+  "matches": [
+    {
+      "category_path": [
+        "Electronics",
+        "Electronics Accessories",
+        "Computer Components",
+        "Input Device Accessories",
+        "Game Controller Accessories"
+      ],
+      "full_path": "Electronics > Electronics Accessories > Computer Components > Input Device Accessories > Game Controller Accessories",
+      "leaf_category": "Game Controller Accessories",
+      "is_best_match": true
+    },
+    {
+      "category_path": [
+        "Electronics",
+        "Electronics Accessories",
+        "Computer Components",
+        "Input Devices",
+        "Game Controllers",
+        "Musical Instrument Game Controllers"
+      ],
+      "full_path": "Electronics > Electronics Accessories > Computer Components > Input Devices > Game Controllers > Musical Instrument Game Controllers",
+      "leaf_category": "Musical Instrument Game Controllers",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Electronics",
+        "Video Game Consoles"
+      ],
+      "full_path": "Electronics > Video Game Consoles",
+      "leaf_category": "Video Game Consoles",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Electronics",
+        "Electronics Accessories",
+        "Power",
+        "Batteries",
+        "Video Game Console & Controller Batteries"
+      ],
+      "full_path": "Electronics > Electronics Accessories > Power > Batteries > Video Game Console & Controller Batteries",
+      "leaf_category": "Video Game Console & Controller Batteries",
+      "is_best_match": false
+    }
+  ]
+},
+{
+  "product_info": "Nike Air Max 270: Running shoes with air cushioning technology",
+  "best_match_index": 0,
+  "matches": [
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": true
+    },
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": false
+    },
+    {
+      "category_path": [
+        "Apparel & Accessories",
+        "Shoes"
+      ],
+      "full_path": "Apparel & Accessories > Shoes",
+      "leaf_category": "Shoes",
+      "is_best_match": false
+    }
+  ]
+}
+]
