@@ -570,14 +570,21 @@ class TaxonomyNavigator:
         prompt = (
             f"Product: {product_info}\n\n"
             
-            f"Select exactly 10 categories from this list that best match the product:\n\n"
+            f"IMPORTANT: Select exactly 10 categories that are MOST SPECIFIC and RELEVANT to the product.\n"
+            f"Choose categories that best describe the product's primary function or type.\n\n"
+            
+            f"Available categories (with their L1 taxonomy):\n"
             f"{chr(10).join(category_list_with_context)}\n\n"
         )
         
         if excluded_leaves:
-            prompt += f"Do not select these already chosen categories: {', '.join(excluded_leaves)}\n\n"
+            prompt += f"Already selected categories (do not select these): {', '.join(excluded_leaves)}\n\n"
         
-        prompt += f"Return one category per line (category name only, not the L1 part):"
+        prompt += (
+            f"Return exactly 10 categories, one per line.\n"
+            f"Only return the category name (not the L1 part).\n"
+            f"Select the MOST SPECIFIC categories that best match the product."
+        )
         
         try:
             # Make API call with deterministic settings and NO CONTEXT
@@ -712,28 +719,53 @@ class TaxonomyNavigator:
         
         logger.info(f"Stage 3: Final selection among {len(selected_leaves)} filtered candidates from Stage 2")
         
-        # Create numbered options
-        numbered_options = [f"{i}. {leaf}" for i, leaf in enumerate(selected_leaves, 1)]
-        
-        # Construct professional prompt for number selection
-        prompt = self._build_professional_prompt_final(product_info, numbered_options)
-        
-        # Make API call with zero context
-        response = self.client.chat.completions.create(
-            model=self.stage3_model,  # gpt-4.1
-            messages=[
-                {"role": "system", "content": "You are a product categorization assistant..."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0,  # Deterministic selection
-            top_p=0        # Deterministic selection
-        )
-        
-        # Parse number and validate bounds
-        selected_index = self._parse_and_validate_number(response, len(selected_leaves))
-        
-        # Return -1 for complete failures (indicates "False")
-        return selected_index if selected_index >= 0 else -1
+        try:
+            # Create numbered options
+            numbered_options = [f"{i}. {leaf}" for i, leaf in enumerate(selected_leaves, 1)]
+            
+            # Construct professional prompt for number selection
+            prompt = self._build_professional_prompt_final(product_info, numbered_options)
+            
+            # Log the prompt for debugging
+            logger.info("Stage 3 Prompt:")
+            logger.info("=" * 80)
+            logger.info(prompt)
+            logger.info("=" * 80)
+            
+            # Make API call with zero context
+            response = self.client.chat.completions.create(
+                model=self.stage3_model,  # gpt-4.1
+                messages=[
+                    {"role": "system", "content": "You are a product categorization assistant..."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0,  # Deterministic selection
+                top_p=0        # Deterministic selection
+            )
+            
+            # Log the raw response for debugging
+            raw_response = response.choices[0].message.content.strip()
+            logger.info("Stage 3 Raw LLM Response:")
+            logger.info("=" * 80)
+            logger.info(f"'{raw_response}'")
+            logger.info("=" * 80)
+            
+            # Parse number and validate bounds
+            selected_index = self._parse_and_validate_number(response, len(selected_leaves))
+            
+            # Log the result of parsing
+            if selected_index >= 0:
+                logger.info(f"Stage 3 Successfully parsed index {selected_index} from response")
+                logger.info(f"Selected category: {selected_leaves[selected_index]}")
+            else:
+                logger.warning(f"Stage 3 Failed to parse valid index from response: '{raw_response}'")
+            
+            # Return -1 for complete failures (indicates "False")
+            return selected_index if selected_index >= 0 else -1
+            
+        except Exception as e:
+            logger.error(f"Error in Stage 3 final selection: {e}")
+            return -1  # Return -1 for any errors
 
     def navigate_taxonomy(self, product_info: str) -> Tuple[List[List[str]], int]:
         """
@@ -1015,7 +1047,7 @@ class TaxonomyNavigator:
         
         return valid_categories
 
-    def _parse_selection_number(self, result: str, max_options: int) -> int:
+    def _parse_and_validate_number(self, response: Any, max_options: int) -> int:
         """
         Parse the AI's selection number and convert to 0-based index.
         
@@ -1024,7 +1056,7 @@ class TaxonomyNavigator:
         Returns -1 for complete parsing failures to indicate classification failure.
 
         Args:
-            result (str): Raw response from AI
+            response (Any): Raw response from AI
             max_options (int): Maximum valid option number
             
         Returns:
@@ -1032,8 +1064,13 @@ class TaxonomyNavigator:
                  OR -1 to indicate complete parsing failure
         """
         try:
+            # Get the raw content
+            result = response.choices[0].message.content.strip()
+            logger.info(f"Parsing response: '{result}'")
+            
             # Clean the result string
             cleaned_result = result.strip().lower()
+            logger.info(f"Cleaned result: '{cleaned_result}'")
             
             # Check for completely empty or meaningless input
             if not cleaned_result or len(cleaned_result) == 0:
@@ -1043,15 +1080,17 @@ class TaxonomyNavigator:
             # Look for any number in the result
             import re
             numbers = re.findall(r'\d+', cleaned_result)
+            logger.info(f"Found numbers in response: {numbers}")
             
             if numbers:
                 # Take the first number found
                 selected_number = int(numbers[0])
+                logger.info(f"Selected number: {selected_number}")
                 
                 # Validate the number is within valid range (1 to max_options)
                 if 1 <= selected_number <= max_options:
                     best_index = selected_number - 1  # Convert to 0-based
-                    logger.info(f"Parsed selection: option {selected_number} (index {best_index})")
+                    logger.info(f"Valid selection: option {selected_number} (index {best_index})")
                     return best_index
                 else:
                     logger.warning(f"AI returned out-of-range number: {selected_number}, valid range is 1-{max_options}")
@@ -1059,12 +1098,13 @@ class TaxonomyNavigator:
             # If no valid number found, try direct number parsing
             try:
                 direct_number = int(cleaned_result)
+                logger.info(f"Direct number parsing result: {direct_number}")
                 if 1 <= direct_number <= max_options:
                     best_index = direct_number - 1
-                    logger.info(f"Parsed direct number: {direct_number} (index {best_index})")
+                    logger.info(f"Valid direct number: {direct_number} (index {best_index})")
                     return best_index
             except ValueError:
-                pass
+                logger.info("Direct number parsing failed - not a number")
             
             # If all parsing fails, check if this is a complete failure case
             # For certain meaningless responses, return -1 instead of defaulting
@@ -1110,3 +1150,28 @@ class TaxonomyNavigator:
         logger.error(f"Could not find match for selected category: '{selected_category}'")
         logger.error(f"Available categories were: {available_categories}")
         return -1  # Indicates classification failure
+
+    def _build_professional_prompt_final(self, product_info: str, numbered_options: List[str]) -> str:
+        """
+        Build a professional prompt for the final selection stage.
+        
+        Args:
+            product_info (str): Complete product information
+            numbered_options (List[str]): List of numbered category options
+            
+        Returns:
+            str: Professional prompt for final selection
+        """
+        return f"""
+Product: {product_info}
+
+IMPORTANT: From amongst the provided options below, select the category that is MOST LIKELY to roughly describe this product.
+Don't worry about finding a perfect match - just pick the option that seems most likely to be correct.
+If multiple options seem reasonable, pick the one that feels most probable.
+
+Available categories:
+{chr(10).join(numbered_options)}
+
+Return ONLY the number of your selection (e.g., "1" or "2").
+The number must be between 1 and {len(numbered_options)}.
+"""
