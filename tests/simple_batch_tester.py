@@ -36,8 +36,10 @@ Each classification shows:
 1. Product analysis header with product description
 2. Stage 1: AI-selected leaf nodes (up to 20, duplicates removed)
 3. Stage 2: Filtering statistics and most popular taxonomy layer
-4. Stage 3: Final AI selection from filtered candidates
-5. Final result: [Product Description] followed by Final Category
+4. Stage 3: AI-refined selection (up to 10 from filtered L1 taxonomy candidates)
+5. Stage 4: Validation of AI selections (remove hallucinations)
+6. Stage 5: Final AI selection from validated candidates
+7. Final result: [Product Description] followed by Final Category
 
 Example Output:
   ==================== ANALYZING PRODUCT 1 ====================
@@ -50,22 +52,28 @@ Example Output:
   📊 Found 12 valid categories out of 15 AI-selected categories
   ✅ Most popular layer: 'Electronics' - Filtered to 8 leaves
   
-  📋 STAGE 3 - AI selecting final match from 8 candidates...
+  📋 STAGE 3 - AI refining selection to top 10 from 8 L1 taxonomy candidates...
+  ✅ AI refined selection - selected 8 leaf nodes from Electronics layer
+  
+  📋 STAGE 4 - Validating AI selections against taxonomy...
+  ✅ Validated 8 categories (no hallucinations detected)
+  
+  📋 STAGE 5 - AI selecting final match from 8 validated candidates...
   🎯 FINAL RESULT: Electronics > Cell Phones > Smartphones
   
   [iPhone 14 Pro: Smartphone with camera...]
   Smartphones
 
-Recent Improvements (v3.0):
-- Added validation statistics showing valid vs invalid AI selections
+Recent Improvements (v5.0):
+- Updated for new 5-stage classification process
+- Added Stage 4 validation to prevent AI hallucinations
 - Enhanced visual separation between products for better readability
-- Fixed display bugs ensuring consistent stage-by-stage reporting
-- Added random product selection with user-specified count
+- Updated stage numbering and documentation throughout
 - Improved error handling and user input validation
 - Better integration with updated taxonomy navigator engine
 
 Author: AI Assistant
-Version: 3.0
+Version: 5.0
 Last Updated: 2025-01-25
 """
 
@@ -142,7 +150,7 @@ def classify_product_with_stage1_display(navigator: TaxonomyNavigator, product_l
     """
     Classify a single product and optionally display the AI's selections at each stage.
     
-    This function performs the full three-stage classification and can display
+    This function performs the full four-stage classification and can display
     the AI's actual selections at each stage for debugging purposes.
     
     Args:
@@ -196,10 +204,49 @@ def classify_product_with_stage1_display(navigator: TaxonomyNavigator, product_l
             else:
                 print("\n❌ No leaves remaining after filtering")
             
-            print(f"\n📋 STAGE 3 - AI selecting final match from {len(filtered_leaves)} candidates...")
+            # Stage 3: Show refined selection results with AI's actual selections
+            print(f"\n📋 STAGE 3 - AI refining selection to top 10 from {len(filtered_leaves)} L1 taxonomy candidates...")
+            print(f"💡 This is like Stage 1, but only with the filtered leaves from the dominant L1 taxonomy layer")
+            refined_leaves = navigator.stage3_refined_selection(product_line, filtered_leaves)
+            
+            if refined_leaves:
+                print(f"\n✅ AI refined selection - selected {len(refined_leaves)} leaf nodes:")
+                for i, leaf in enumerate(refined_leaves, 1):
+                    print(f"   {i:2d}. {leaf}")
+                
+                # Also show the full paths for context
+                print(f"\n📍 Full paths of AI-selected refined categories:")
+                for i, leaf in enumerate(refined_leaves, 1):
+                    if leaf in leaf_to_path:
+                        full_path = leaf_to_path[leaf]
+                        print(f"   {i:2d}. {leaf} → {full_path}")
+                    else:
+                        print(f"   {i:2d}. {leaf} → [Path not found]")
+            else:
+                print("\n❌ No leaves remaining after refined selection")
+            
+            # Stage 4: Show validation results
+            print(f"\n📋 STAGE 4 - Validating AI selections against taxonomy...")
+            print(f"💡 Ensuring AI didn't hallucinate any category names that don't exist")
+            validated_leaves = navigator.stage4_validation(refined_leaves)
+            
+            if validated_leaves:
+                invalid_count = len(refined_leaves) - len(validated_leaves)
+                if invalid_count > 0:
+                    print(f"\n⚠️  Validation removed {invalid_count} invalid/hallucinated categories")
+                    print(f"✅ Validated {len(validated_leaves)} categories:")
+                else:
+                    print(f"\n✅ Validated {len(validated_leaves)} categories (no hallucinations detected):")
+                
+                for i, leaf in enumerate(validated_leaves, 1):
+                    print(f"   {i:2d}. {leaf}")
+            else:
+                print("\n❌ No leaves remaining after validation")
+            
+            print(f"\n📋 STAGE 5 - AI selecting final match from {len(validated_leaves)} validated candidates...")
             print("=" * 80)
         
-        # Perform the full three-stage classification
+        # Perform the full four-stage classification
         paths, best_match_idx = navigator.navigate_taxonomy(product_line)
         
         if show_stage1_paths and paths != [["False"]]:
@@ -231,8 +278,15 @@ def main():
 Examples:
   %(prog)s                                          # Use default files
   %(prog)s --products-file my_products.txt          # Custom products file
-  %(prog)s --model gpt-4.1-mini                     # Use different model
+  %(prog)s --model gpt-4.1-mini                     # Use different model for Stages 1&3
   %(prog)s --show-stage1-paths                      # Display AI selections at each stage
+  
+5-Stage Classification Process:
+  Stage 1: AI selects top 20 leaf nodes from all 4,722 categories
+  Stage 2: Algorithmic filtering to most popular taxonomy layer
+  Stage 3: AI refines to top 10 categories from filtered L1 taxonomy candidates
+  Stage 4: Validation of AI selections against taxonomy
+  Stage 5: AI final selection using enhanced model (gpt-4.1-mini)
   
 Output Format:
   Each line shows: "Product Title: Leaf Category"

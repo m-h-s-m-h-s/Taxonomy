@@ -4,7 +4,7 @@ This document provides a detailed explanation of the Taxonomy Navigator's archit
 
 ## System Overview
 
-The Taxonomy Navigator implements a sophisticated three-stage AI classification system that efficiently processes products through large taxonomy structures. The system is designed for high accuracy, performance, and scalability while maintaining cost-effectiveness through strategic model selection and progressive filtering.
+The Taxonomy Navigator implements a sophisticated five-stage AI classification system that efficiently processes products through large taxonomy structures. The system is designed for high accuracy, performance, and scalability while maintaining cost-effectiveness through strategic model selection, progressive filtering, and data integrity validation.
 
 ## System Components
 
@@ -13,9 +13,8 @@ The Taxonomy Navigator consists of several key components organized into focused
 ### Core Engine (`src/taxonomy_navigator_engine.py`)
 - **Taxonomy Parser**: Processes the taxonomy file and builds internal data structures
 - **Tree Builder**: Constructs a hierarchical representation of the taxonomy
-- **Level-2 Category Extractor**: Identifies broad category areas for Stage 1 matching
 - **Leaf Node Identifier**: Identifies the leaf nodes (end categories) in the taxonomy
-- **Three-Stage AI Classifier**: Implements the core classification logic
+- **Five-Stage AI Classifier**: Implements the core classification logic with validation
 - **API Client Manager**: Handles OpenAI API communication with error handling
 - **Result Processor**: Formats and saves classification results
 
@@ -78,7 +77,6 @@ The taxonomy is represented as a nested dictionary structure:
 For efficient lookup and processing, the system maintains:
 - `all_paths`: A list of all taxonomy paths from the file
 - `leaf_markers`: A parallel boolean list indicating which paths are leaf nodes
-- `level2_categories`: A list of all level-2 category paths for Stage 1 matching
 - `leaf_to_path`: A mapping from leaf node names to their full paths
 
 ### Result Structure
@@ -111,28 +109,28 @@ The system uses a sophisticated approach to identify leaf nodes (end categories)
 
 This approach correctly handles irregular taxonomy structures and ensures accurate leaf node identification.
 
-## Three-Stage Classification Algorithm
+## Five-Stage Classification Algorithm
 
-### Stage 1: Leaf Node Matching (gpt-4.1-nano)
+### Stage 1: Initial Leaf Node Matching (gpt-4.1-nano)
 
-**Purpose**: Efficiently identify the top 10 most relevant leaf nodes from all categories in the taxonomy.
+**Purpose**: Efficiently identify the top 20 most relevant leaf nodes from all categories in the taxonomy.
 
 **Process**:
 1. **Leaf Node Extraction**: Identifies all leaf nodes (end categories) from the taxonomy
 2. **Prompt Construction**: Creates an enhanced prompt focusing on core product identification
 3. **API Request**: Sends product info + all leaf nodes to gpt-4.1-nano
-4. **Response Processing**: Extracts and validates the top 10 leaf node selections
+4. **Response Processing**: Extracts and validates the top 20 leaf node selections
 
 **Enhanced Prompting Strategy**:
 ```
-Given the product: '{product_info}', which TEN of these specific categories are most appropriate?
+Given the product: '{product_info}', which TWENTY of these specific categories are most appropriate?
 
 First, think carefully about what the core product being sold is. Focus on the primary item, not accessories or add-ons.
 Ignore extraneous or marketing information and identify the fundamental product category.
 
 Categories: {all_leaf_nodes}
 
-Return ONLY the names of the 10 most appropriate categories in order of relevance, one per line, with no additional text or numbering.
+Return ONLY the names of the 20 most appropriate categories in order of relevance, one per line, with no additional text or numbering.
 ```
 
 **Model Configuration**:
@@ -172,17 +170,79 @@ filtered_leaves = [
 **Benefits**:
 - Ensures classification consistency within the same product domain
 - Eliminates cross-category confusion
-- Reduces final selection complexity
+- Reduces complexity for subsequent stages
 - No API calls required (algorithmic processing)
 
-### Stage 3: Final Selection (gpt-4.1-nano)
+### Stage 3: Refined Selection (gpt-4.1-nano)
 
-**Purpose**: Select the single best match from the filtered leaves within the dominant taxonomy layer.
+**Purpose**: Refine selection to the top 10 most relevant leaf nodes from filtered L1 taxonomy candidates.
 
 **Process**:
-1. **Candidate Formatting**: Converts filtered leaf names to full taxonomy paths
-2. **Structured Prompting**: Uses a multi-step approach for product identification
+1. **Candidate Analysis**: Takes filtered leaves from Stage 2 (all from same L1 taxonomy layer)
+2. **Refined Prompting**: Uses AI to select top 10 most relevant categories from filtered candidates
 3. **API Request**: Sends structured prompt to gpt-4.1-nano
+4. **Selection Processing**: Extracts and validates the refined selection
+
+**Refined Prompting Strategy**:
+```
+Given the product: '{product_info}', which TEN of these specific categories are most appropriate?
+
+These categories have already been filtered to the most relevant taxonomy layer. 
+Your task is to select the 10 most precise matches from this refined list.
+
+Categories: {filtered_leaves}
+
+Return EXACTLY 10 category names from the above list, one per line, with no additional text.
+```
+
+**Model Configuration**:
+- Model: `gpt-4.1-nano` (consistent with Stage 1)
+- Temperature: 0 (deterministic results)
+- Top_p: 0 (deterministic results)
+
+**Key Insight**: This is essentially Stage 1 repeated, but with a smaller, more focused set of leaf nodes from the same L1 taxonomy layer.
+
+### Stage 4: Validation (algorithmic)
+
+**Purpose**: Ensure AI didn't hallucinate any category names that don't exist in the taxonomy.
+
+**Process**:
+1. **Category Validation**: Checks each refined category name against the actual taxonomy
+2. **Hallucination Detection**: Identifies any invalid or non-existent category names
+3. **Data Cleaning**: Removes any hallucinated categories from the list
+4. **Statistics Logging**: Logs validation results (valid vs invalid categories)
+
+**Algorithm Details**:
+```python
+# Create mapping from leaf names to full paths for validation
+leaf_to_path = self._create_leaf_to_path_mapping()
+
+# Validate each category name exists in the actual taxonomy
+validated_categories = []
+invalid_categories = []
+
+for category in refined_leaves:
+    if category in leaf_to_path:
+        validated_categories.append(category)
+    else:
+        invalid_categories.append(category)
+        logger.warning(f"AI returned invalid/hallucinated category: {category}")
+```
+
+**Benefits**:
+- Ensures data integrity before final selection
+- Prevents downstream errors from invalid category names
+- Provides visibility into AI hallucination patterns
+- No API calls required (algorithmic processing)
+
+### Stage 5: Final Selection (gpt-4.1-mini)
+
+**Purpose**: Select the single best match from the validated leaves using enhanced model precision.
+
+**Process**:
+1. **Candidate Formatting**: Converts validated leaf names to numbered options
+2. **Structured Prompting**: Uses a multi-step approach for product identification
+3. **API Request**: Sends structured prompt to gpt-4.1-mini
 4. **Selection Parsing**: Extracts the final selection and converts to 0-based index
 
 **Structured Prompting Strategy**:
@@ -207,7 +267,7 @@ Return ONLY the NUMBER of the most appropriate category, with no additional text
 ```
 
 **Model Configuration**:
-- Model: `gpt-4.1-nano` (consistent across all stages)
+- Model: `gpt-4.1-mini` (enhanced precision for final decision)
 - Temperature: 0 (deterministic results)
 - Top_p: 0 (deterministic results)
 
@@ -241,16 +301,19 @@ Return ONLY the NUMBER of the most appropriate category, with no additional text
 - **No Match Found**: Returns "False" with appropriate logging
 - **Ambiguous Results**: Uses confidence scoring and fallback logic
 - **Category Validation**: Ensures returned categories exist in taxonomy
+- **AI Hallucinations**: Stage 4 validation removes invalid categories
 
 ## Performance Optimizations
 
 ### Efficiency Measures
 1. **Single Tree Build**: Taxonomy tree built once during initialization
-2. **Progressive Narrowing**: Three-stage approach minimizes irrelevant processing
-3. **Level-2 Pre-filtering**: Stage 1 dramatically reduces search space
-4. **Optimized Prompting**: Minimizes token usage while maintaining accuracy
-5. **Consistent Model Usage**: All stages use gpt-4.1-nano for cost efficiency
-6. **Caching Potential**: Architecture supports future caching implementation
+2. **Progressive Narrowing**: Five-stage approach minimizes irrelevant processing
+3. **L1 Layer Pre-filtering**: Stage 2 dramatically reduces search space
+4. **Refined Selection**: Stage 3 provides focused input for validation and final decision
+5. **Validation Layer**: Stage 4 ensures data integrity without API costs
+6. **Optimized Prompting**: Minimizes token usage while maintaining accuracy
+7. **Mixed Model Usage**: gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
+8. **Caching Potential**: Architecture supports future caching implementation
 
 ### Scalability Features
 1. **Memory Efficient**: Optimized data structures for large taxonomies
@@ -289,7 +352,8 @@ Return ONLY the NUMBER of the most appropriate category, with no additional text
 1. **Initialization**: System startup and configuration
 2. **API Requests**: Request/response details (sanitized)
 3. **Classification Results**: Success/failure with timing
-4. **Error Conditions**: Detailed error context and recovery actions
+4. **Validation Results**: Stage 4 validation statistics
+5. **Error Conditions**: Detailed error context and recovery actions
 
 ## Simplified Architecture Benefits
 
@@ -311,13 +375,15 @@ The current architecture follows a "simple and focused" approach:
    - Source modules handle core functionality
    - Tests provide validation and quality assurance
 
-### Three-Stage Benefits
+### Five-Stage Benefits
 
-1. **Maximum Efficiency**: Progressive filtering from thousands → 10 → filtered subset → 1
-2. **Cost Optimization**: Only 2 API calls (Stage 1 + Stage 3), Stage 2 is algorithmic
+1. **Maximum Efficiency**: Progressive filtering from thousands → 20 → filtered L1 → 10 → validated → 1
+2. **Cost Optimization**: Three API calls (Stages 1, 3, and 5), Stages 2 and 4 are algorithmic
 3. **Improved Accuracy**: Each stage focuses on a specific level of granularity
-4. **Scalability**: Handles large taxonomies without overwhelming the AI
-5. **Consistency**: Layer filtering ensures results stay within the same product domain
+4. **Enhanced Precision**: Final stage uses gpt-4.1-mini for better decision quality
+5. **Data Integrity**: Stage 4 validation prevents AI hallucinations
+6. **Scalability**: Handles large taxonomies without overwhelming the AI
+7. **Consistency**: Layer filtering ensures results stay within the same L1 taxonomy domain
 
 ### Extensibility Architecture
 
@@ -338,7 +404,7 @@ The system is designed to support future extensions:
 ### Source Code Structure
 ```
 src/
-├── taxonomy_navigator_engine.py  # Core classification engine
+├── taxonomy_navigator_engine.py  # Core classification engine (5-stage)
 ├── interactive_interface.py      # Interactive user interface
 └── config.py                     # Configuration management
 ```
@@ -390,4 +456,4 @@ tests/
 - **Performance Benchmarks**: Speed and resource usage tracking
 - **Regression Testing**: Automated testing for changes
 
-This architecture provides a robust, scalable, and maintainable foundation for AI-powered product categorization while ensuring high accuracy and performance through a clean, simplified design with three-stage progressive refinement. 
+This architecture provides a robust, scalable, and maintainable foundation for AI-powered product categorization while ensuring high accuracy and performance through a clean, simplified design with five-stage progressive refinement and data integrity validation. 

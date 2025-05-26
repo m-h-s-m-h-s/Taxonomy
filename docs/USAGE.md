@@ -95,23 +95,36 @@ The Taxonomy Navigator has two main scripts:
 
 ## How It Works
 
-### Three-Stage AI Classification Process
+### Five-Stage AI Classification Process
 
-The system uses a sophisticated three-stage approach for maximum efficiency and accuracy:
+The system uses a sophisticated five-stage approach for maximum efficiency and accuracy:
 
-1. **Leaf Node Matching** (gpt-4.1-nano):
-   - Identifies the top 10 most relevant leaf nodes from all categories in the taxonomy
+1. **Initial Leaf Node Matching** (gpt-4.1-nano):
+   - Identifies the top 20 most relevant leaf nodes from all categories in the taxonomy
    - Uses enhanced prompting to focus on the core product being sold
    - Efficiently selects specific end categories from thousands of options
 
 2. **Layer Filtering** (algorithmic):
    - Analyzes the selected leaf nodes to identify the most popular 1st taxonomy layer
-   - Filters the 10 selected leaves to only those from the dominant top-level category
+   - Filters the 20 selected leaves to only those from the dominant top-level category
    - Ensures classification consistency within the same product domain
 
-3. **Final Selection** (gpt-4.1-nano):
+3. **Refined Selection** (gpt-4.1-nano):
+   - Takes the filtered candidates and refines selection to top 10 most relevant categories
+   - This is essentially Stage 1 repeated, but only with leaves from the dominant L1 taxonomy layer
+   - Uses AI to provide better focus for the validation and final selection stages
+   - Applies enhanced prompting focused on core product identification
+
+4. **Validation** (algorithmic):
+   - Validates that all AI-selected category names actually exist in the taxonomy
+   - Removes any hallucinated or invalid category names
+   - Ensures data integrity before final selection
+   - Logs validation statistics (valid vs invalid categories)
+
+5. **Final Selection** (gpt-4.1-mini):
    - Uses sophisticated prompting to identify the exact product type
-   - AI selects the single best match from the filtered candidates
+   - AI selects the single best match from the validated candidates
+   - Enhanced model provides better precision for final decision
    - Returns the full taxonomy path to that category
 
 ## Single Product Classification

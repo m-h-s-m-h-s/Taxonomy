@@ -3,18 +3,27 @@
 # Taxonomy Navigator - Single Product Classification Tool
 #
 # This script provides both command-line and interactive interfaces for classifying
-# individual products using the Taxonomy Navigator system. Choose between one-off
-# classifications with immediate results or interactive mode for testing multiple
-# products in a session.
+# individual products using the Taxonomy Navigator system's 5-stage AI process.
+# Choose between one-off classifications with immediate results or interactive mode 
+# for testing multiple products in a session.
 #
 # Features:
-# - Single product classification with immediate results
+# - Single product classification with immediate results using 5-stage AI process
 # - Interactive mode for testing multiple products in one session
 # - Configurable taxonomy files and AI models
 # - JSON output for detailed result storage
 # - Verbose logging option for debugging
 # - Automatic results directory creation
 # - Clear success/failure feedback
+# - Uses gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
+# - Stage 4 validation prevents AI hallucinations
+#
+# 5-Stage Classification Process:
+# 1. AI selects top 20 leaf nodes from all 4,722 categories (gpt-4.1-nano)
+# 2. Algorithmic filtering to most popular L1 taxonomy layer
+# 3. AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)
+# 4. Validation to ensure no AI hallucinations (algorithmic)
+# 5. AI final selection using enhanced model (gpt-4.1-mini)
 #
 # Usage Examples:
 #   # Command-line mode (single product)
@@ -26,7 +35,7 @@
 #   ./classify_single_product.sh -i --verbose --save-results
 #
 # Author: AI Assistant
-# Version: 3.0
+# Version: 5.0
 # Last Updated: 2025-01-25
 #
 
@@ -47,7 +56,7 @@ NC='\033[0m' # No Color
 
 # Function to display comprehensive usage information
 usage() {
-    echo -e "${BLUE}Taxonomy Navigator - Single Product Classification Tool${NC}"
+    echo -e "${BLUE}Taxonomy Navigator - Single Product Classification Tool (5-Stage AI Process)${NC}"
     echo ""
     echo "Usage: $0 [MODE] [OPTIONS]"
     echo ""
@@ -72,10 +81,17 @@ usage() {
     echo "                                 (default: ../data/taxonomy.en-US.txt)"
     echo "  -o, --output FILE              Output JSON file for results"
     echo "                                 (default: ../results/taxonomy_results.json)"
-    echo "  -m, --model MODEL              OpenAI model for classification"
-    echo "                                 (default: gpt-4.1-nano)"
+    echo "  -m, --model MODEL              OpenAI model for Stages 1&3"
+    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-mini)"
     echo "  -v, --verbose                  Enable verbose logging for debugging"
     echo "  -h, --help                     Show this help message"
+    echo ""
+    echo "5-Stage Classification Process:"
+    echo "  Stage 1: AI selects top 20 categories from 4,722 options (gpt-4.1-nano)"
+    echo "  Stage 2: Algorithmic filtering to most popular L1 taxonomy layer"
+    echo "  Stage 3: AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)"
+    echo "  Stage 4: Validation to ensure no AI hallucinations (algorithmic)"
+    echo "  Stage 5: AI final selection using enhanced model (gpt-4.1-mini)"
     echo ""
     echo "Examples:"
     echo "  # Single product classification"
@@ -87,11 +103,11 @@ usage() {
     echo "  # Interactive mode with result saving"
     echo "  $0 -i --save-results --verbose"
     echo ""
-    echo "  # Custom model and output file"
-    echo "  $0 -n \"Nike Air Max\" -d \"Running shoes\" -m gpt-4.1-mini -o my_results.json"
+    echo "  # Custom model for Stages 1&3 (Stage 4 always uses gpt-4.1-mini)"
+    echo "  $0 -n \"Nike Air Max\" -d \"Running shoes\" -m gpt-4o -o my_results.json"
     echo ""
     echo "Interactive Mode Features:"
-    echo "  • Test multiple products in one session"
+    echo "  • Test multiple products in one session using 5-stage AI process"
     echo "  • Real-time classification results"
     echo "  • Session statistics and success rates"
     echo "  • Commands: help, stats, clear, quit"
@@ -227,11 +243,11 @@ done
 
 # Pre-flight checks and validation
 if [ "$INTERACTIVE_MODE" = true ]; then
-    echo -e "${BLUE}🔍 Taxonomy Navigator - Interactive Classification Interface${NC}"
-    echo -e "${BLUE}====================================================${NC}"
+    echo -e "${BLUE}🔍 Taxonomy Navigator - Interactive Classification Interface (5-Stage AI)${NC}"
+    echo -e "${BLUE}=================================================================${NC}"
 else
-    echo -e "${BLUE}🔍 Taxonomy Navigator - Single Product Classification${NC}"
-    echo -e "${BLUE}===================================================${NC}"
+    echo -e "${BLUE}🔍 Taxonomy Navigator - Single Product Classification (5-Stage AI)${NC}"
+    echo -e "${BLUE}=============================================================${NC}"
 fi
 echo ""
 
@@ -270,7 +286,7 @@ else
 fi
 
 echo -e "${GREEN}📁 Taxonomy file: $TAXONOMY_FILE${NC}"
-echo -e "${GREEN}🤖 AI Model: $MODEL${NC}"
+echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-mini${NC}"
 
 if [ -n "$VERBOSE" ]; then
     echo -e "${GREEN}🔍 Verbose logging enabled${NC}"

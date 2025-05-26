@@ -8,7 +8,7 @@ to use command-line arguments for each query.
 
 Features:
 - Interactive product entry with prompts
-- Real-time classification results
+- Real-time classification results using 5-stage AI process
 - Option to save results to file
 - Continuous operation until user exits
 - Verbose logging option for debugging
@@ -20,8 +20,15 @@ This interface is ideal for:
 - Development and debugging
 - Quick ad-hoc classifications
 
+The system uses a sophisticated five-stage approach:
+1. Initial Leaf Node Matching: AI selects top 20 relevant categories from all 4,722 options
+2. Layer Filtering: Algorithmic filtering to most popular L1 taxonomy layer
+3. Refined Selection: AI refines to top 10 categories from filtered L1 taxonomy candidates
+4. Validation: Ensures AI didn't hallucinate any category names that don't exist
+5. Final Selection: AI selects best match using enhanced model (gpt-4.1-mini)
+
 Author: AI Assistant
-Version: 2.0
+Version: 5.0
 Last Updated: 2025-01-25
 """
 
@@ -97,8 +104,8 @@ class TaxonomyInterface:
         print("🔍 TAXONOMY NAVIGATOR - INTERACTIVE INTERFACE")
         print("="*70)
         print("\nWelcome to the AI-powered product classification system!")
-        print("\nThis interface allows you to classify products into taxonomy categories")
-        print("using OpenAI's advanced language models.")
+        print("\nThis interface uses a sophisticated 5-stage AI process to classify")
+        print("products into appropriate taxonomy categories using OpenAI's models.")
         print("\n📋 How to use:")
         print("  • Enter product information when prompted")
         print("  • Use format: 'Product Name: Description' or just 'Product Name'")
@@ -109,6 +116,12 @@ class TaxonomyInterface:
         print("  • iPhone 14 Pro: Smartphone with advanced camera system")
         print("  • Xbox Wireless Controller: Gaming controller with Bluetooth")
         print("  • Nike Air Max: Running shoes with air cushioning")
+        print("\n🤖 5-Stage Classification Process:")
+        print("  1. AI selects top 20 categories from 4,722 options")
+        print("  2. Algorithmic filtering to most popular L1 taxonomy layer")
+        print("  3. AI refines to top 10 categories from filtered L1 taxonomy candidates")
+        print("  4. Validation: Ensures AI didn't hallucinate any category names that don't exist")
+        print("  5. AI final selection using enhanced model (gpt-4.1-mini)")
         print("\n" + "="*70 + "\n")
         
     def display_help(self):

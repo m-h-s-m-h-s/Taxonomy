@@ -5,7 +5,7 @@ This project has a clean, logical script structure with just **2 main scripts** 
 ## 🔧 Available Scripts
 
 ### 1. `scripts/classify_single_product.sh`
-**Purpose**: Classify individual products with detailed analysis
+**Purpose**: Classify individual products with detailed analysis using 5-stage AI process
 
 **Two Modes Available:**
 
@@ -24,16 +24,18 @@ Launch an interactive interface for testing multiple products in a session:
 ```
 
 **Key Features:**
-- ✅ Single product classification with detailed results
+- ✅ Single product classification with detailed results using 5-stage process
 - ✅ Interactive mode for real-time testing
 - ✅ Session statistics and result saving (interactive mode)
 - ✅ JSON output with comprehensive metadata
 - ✅ Configurable AI models and taxonomy files
+- ✅ Uses gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
+- ✅ Stage 4 validation prevents AI hallucinations
 
 ---
 
 ### 2. `scripts/analyze_batch_products.sh`
-**Purpose**: Simple batch testing of multiple products
+**Purpose**: Simple batch testing of multiple products using 5-stage classification
 
 **Simple Output Mode:**
 Clean, minimal output perfect for demonstrations and quick validation:
@@ -42,11 +44,12 @@ Clean, minimal output perfect for demonstrations and quick validation:
 ```
 
 **Key Features:**
-- ✅ Batch processing from text files
+- ✅ Batch processing from text files using 5-stage AI process
 - ✅ Clean, minimal output showing "Product: Category"
 - ✅ No timing overhead or complex metrics
 - ✅ Perfect for demonstrations and quick validation
 - ✅ Configurable AI models and taxonomy files
+- ✅ Progressive filtering: 4,722 → 20 → filtered L1 → 10 → validated → 1
 
 ---
 
@@ -54,7 +57,7 @@ Clean, minimal output perfect for demonstrations and quick validation:
 
 ### Single Product Classification (Detailed)
 ```bash
-# Basic single product with detailed results
+# Basic single product with detailed 5-stage results
 ./scripts/classify_single_product.sh -n "Xbox Controller" -d "Wireless gaming controller"
 
 # Interactive mode for multiple products with detailed analysis
@@ -63,7 +66,7 @@ Clean, minimal output perfect for demonstrations and quick validation:
 
 ### Batch Product Testing (Simple)
 ```bash
-# Simple batch testing with clean output
+# Simple batch testing with clean output using 5-stage process
 ./scripts/analyze_batch_products.sh
 
 # Custom products file
@@ -113,9 +116,11 @@ results/
 
 Both scripts support these common options:
 - `--taxonomy FILE` - Custom taxonomy file
-- `--model MODEL` - Different AI model (gpt-4.1-nano, gpt-4.1-mini, etc.)
+- `--model MODEL` - Different AI model for Stages 1&3 (gpt-4.1-nano, gpt-4.1-mini, etc.)
 - `--verbose` - Detailed logging for debugging
 - `--help` - Show usage information
+
+**Note**: Stage 5 (final selection) always uses gpt-4.1-mini for enhanced precision.
 
 ---
 
@@ -136,6 +141,13 @@ MacBook Pro: Laptop computer for professional use
 **Simple & Focused:**
 - **Single Product Script**: Handles detailed analysis, metrics, JSON output, interactive mode
 - **Batch Script**: Handles simple, clean batch testing for quick validation
+
+**5-Stage Classification Process:**
+- **Stage 1**: AI selects top 20 categories from 4,722 options (gpt-4.1-nano)
+- **Stage 2**: Algorithmic filtering to most popular L1 taxonomy layer
+- **Stage 3**: AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)
+- **Stage 4**: Validation to ensure no AI hallucinations (algorithmic)
+- **Stage 5**: AI final selection using enhanced model (gpt-4.1-mini)
 
 **When to use which:**
 - Need detailed analysis? → Use single product script

@@ -4,13 +4,15 @@ A comprehensive AI-powered product categorization system that uses OpenAI's GPT 
 
 ## Overview
 
-The Taxonomy Navigator implements a sophisticated three-stage AI classification system that efficiently processes products through large taxonomy structures. Unlike traditional hierarchical navigation, this system uses progressive filtering combined with AI refinement to achieve maximum efficiency and accuracy.
+The Taxonomy Navigator implements a sophisticated five-stage AI classification system that efficiently processes products through large taxonomy structures. Unlike traditional hierarchical navigation, this system uses progressive filtering combined with AI refinement and validation to achieve maximum efficiency and accuracy.
 
 ## Key Features
 
-- **Three-Stage AI Classification**: Uses gpt-4.1-nano with progressive filtering
+- **Five-Stage AI Classification**: Uses gpt-4.1-nano and gpt-4.1-mini with progressive filtering and validation
 - **Leaf Node Matching**: Efficiently identifies the most relevant end categories first
 - **Layer Filtering**: Focuses on the most popular top-level taxonomy category
+- **Refined Selection**: AI narrows down to top 10 candidates from filtered L1 taxonomy results
+- **Validation**: Ensures AI didn't hallucinate any category names that don't exist
 - **Enhanced Product Identification**: Advanced prompting to distinguish products from accessories
 - **Deterministic Results**: Uses temperature=0 and top_p=0 for consistent classifications
 - **Comprehensive Error Handling**: Graceful handling of API errors and edge cases
@@ -81,27 +83,39 @@ Pass the API key directly when running commands:
 
 ## System Architecture
 
-### Three-Stage Classification Process
+### Five-Stage Classification Process
 
-The Taxonomy Navigator uses a sophisticated three-stage approach:
+The Taxonomy Navigator uses a sophisticated five-stage approach:
 
-#### Stage 1: Leaf Node Matching (gpt-4.1-nano)
+#### Stage 1: Initial Leaf Node Matching (gpt-4.1-nano)
 1. Identifies all leaf nodes (end categories) in the taxonomy
 2. Sends product information + all leaf nodes to OpenAI
 3. Uses enhanced prompting to focus on the core product being sold
-4. Returns the top 10 most relevant leaf nodes from all categories
+4. Returns the top 20 most relevant leaf nodes from all categories
 
 #### Stage 2: Layer Filtering (algorithmic)
 1. Analyzes the selected leaf nodes to identify the most popular 1st taxonomy layer
 2. Counts occurrences of each top-level category (e.g., "Electronics", "Apparel")
-3. Filters the 10 selected leaves to only those from the dominant top-level category
+3. Filters the 20 selected leaves to only those from the dominant top-level category
 4. Ensures classification consistency within the same product domain
 
-#### Stage 3: Final Selection (gpt-4.1-nano)
-1. Takes the filtered candidates from Stage 2
+#### Stage 3: Refined Selection (gpt-4.1-nano)
+1. Takes the filtered candidates from Stage 2 (all from same L1 taxonomy layer)
+2. Uses AI to refine selection to the top 10 most relevant categories
+3. Applies enhanced prompting focused on core product identification
+4. This is essentially Stage 1 repeated, but only with leaves from the dominant L1 taxonomy layer
+
+#### Stage 4: Validation (algorithmic)
+1. Validates that all AI-selected category names actually exist in the taxonomy
+2. Removes any hallucinated or invalid category names
+3. Ensures data integrity before final selection
+4. Logs validation statistics (valid vs invalid categories)
+
+#### Stage 5: Final Selection (gpt-4.1-mini)
+1. Takes the validated candidates from Stage 4
 2. Uses structured prompting to identify the exact product type
 3. Distinguishes between main products and accessories
-4. Selects the single best match from filtered candidates
+4. Selects the single best match from validated candidates using enhanced model
 
 ### Enhanced Prompting Strategy
 
@@ -135,7 +149,7 @@ Classify individual products with detailed analysis:
 - `--interactive`: Launch interactive interface for multiple products
 - `--save-results`: Save session results to JSON file (interactive mode)
 - `--taxonomy-file FILE`: Path to taxonomy file (default: ../data/taxonomy.en-US.txt)
-- `--model MODEL`: OpenAI model for all stages (default: gpt-4.1-nano)
+- `--model MODEL`: OpenAI model for Stages 1&3 (default: gpt-4.1-nano)
 - `--output-file FILE`: Output JSON file for results
 - `--verbose`: Enable detailed logging
 
@@ -257,10 +271,11 @@ False
 
 ## Performance Considerations
 
-- **Processing Speed**: ~3-4 seconds per product (including three API calls)
-- **API Usage**: Three API calls per product (Stage 1 + Stage 2 + Stage 3)
-- **Cost Optimization**: Uses gpt-4.1-nano for all stages for optimal cost efficiency
+- **Processing Speed**: ~4-5 seconds per product (including five stages with three API calls)
+- **API Usage**: Three API calls per product (Stages 1, 3, and 5)
+- **Cost Optimization**: Uses gpt-4.1-nano for initial stages, gpt-4.1-mini for final precision
 - **Deterministic Results**: temperature=0 and top_p=0 for consistency
+- **Data Integrity**: Stage 4 validation prevents AI hallucinations
 
 ## Error Handling
 
@@ -271,6 +286,7 @@ The system handles various error conditions:
 - **File Not Found**: Helpful error messages with file location guidance
 - **Invalid Taxonomy**: Validation and error reporting
 - **Network Issues**: Retry logic and timeout handling
+- **AI Hallucinations**: Stage 4 validation removes invalid category names
 
 ## Troubleshooting
 
@@ -334,7 +350,7 @@ Enable detailed logging for debugging:
 ```
 Taxonomy/
 ├── src/                              # Core classification logic
-│   ├── taxonomy_navigator_engine.py  # Main classification engine
+│   ├── taxonomy_navigator_engine.py  # Main classification engine (5-stage)
 │   ├── interactive_interface.py      # Interactive interface
 │   └── config.py                     # Configuration management
 ├── scripts/                          # Command-line tools

@@ -1,17 +1,26 @@
 #!/bin/bash
 #
-# Taxonomy Navigator - Simple Batch Product Tester
+# Taxonomy Navigator - Batch Product Analysis Tool
 #
-# This script provides simple batch testing for the Taxonomy Navigator system.
-# It processes multiple products from files and displays clean, minimal results
-# perfect for demonstrations and quick validation.
+# This script provides simple batch testing of multiple products using the
+# Taxonomy Navigator's 5-stage AI classification system. It focuses on clean,
+# minimal output perfect for demonstrations and quick validation.
 #
 # Features:
-# - Batch processing of multiple products from files
-# - Clean, minimal output showing only "Product: Category"
-# - No timing information or detailed metrics
+# - Batch processing from text files using 5-stage AI process
+# - Clean, minimal output showing "Product: Category"
+# - No timing overhead or complex metrics
 # - Perfect for demonstrations and quick validation
-# - Configurable models and taxonomy files
+# - Configurable AI models and taxonomy files
+# - Progressive filtering: 4,722 → 20 → filtered L1 → 10 → validated → 1
+# - Stage 4 validation prevents AI hallucinations
+#
+# 5-Stage Classification Process:
+# 1. AI selects top 20 leaf nodes from all 4,722 categories (gpt-4.1-nano)
+# 2. Algorithmic filtering to most popular L1 taxonomy layer
+# 3. AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)
+# 4. Validation to ensure no AI hallucinations (algorithmic)
+# 5. AI final selection using enhanced model (gpt-4.1-mini)
 #
 # Use Cases:
 # - Quick validation of classification accuracy
@@ -20,12 +29,14 @@
 # - Testing without performance overhead
 #
 # Usage Examples:
-#   ./analyze_batch_products.sh                     # Test with default sample products
-#   ./analyze_batch_products.sh -p my_products.txt  # Test custom products
-#   ./analyze_batch_products.sh --verbose           # Enable verbose logging
+#   # Simple batch testing with default products
+#   ./analyze_batch_products.sh
+#
+#   # Custom products file with verbose logging
+#   ./analyze_batch_products.sh --products my_products.txt --verbose
 #
 # Author: AI Assistant
-# Version: 3.0
+# Version: 5.0
 # Last Updated: 2025-01-25
 #
 
@@ -45,41 +56,40 @@ NC='\033[0m' # No Color
 
 # Function to display usage information
 usage() {
-    echo -e "${BLUE}Taxonomy Navigator - Simple Batch Product Tester${NC}"
+    echo -e "${BLUE}Taxonomy Navigator - Batch Product Analysis Tool (5-Stage AI Process)${NC}"
     echo ""
-    echo "Usage: $0 [options]"
+    echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -p, --products FILE    Products file to test"
-    echo "                         (default: ../tests/sample_products.txt)"
-    echo "  -t, --taxonomy FILE    Taxonomy file path"
-    echo "                         (default: ../data/taxonomy.en-US.txt)"
-    echo "  -m, --model MODEL      OpenAI model for classification"
-    echo "                         (default: gpt-4.1-nano)"
-    echo "  -v, --verbose          Enable verbose logging for debugging"
-    echo "  --show-stage1-paths    Display AI selections at each stage of classification"
-    echo "  -h, --help             Show this help message"
+    echo "  -p, --products FILE            Products file to test"
+    echo "                                 (default: ../tests/sample_products.txt)"
+    echo "  -t, --taxonomy FILE            Taxonomy file path"
+    echo "                                 (default: ../data/taxonomy.en-US.txt)"
+    echo "  -m, --model MODEL              OpenAI model for Stages 1&3"
+    echo "                                 (default: gpt-4.1-nano, Stage 4 uses gpt-4.1-mini)"
+    echo "  -v, --verbose                  Enable verbose logging for debugging"
+    echo "  -h, --help                     Show this help message"
+    echo ""
+    echo "5-Stage Classification Process:"
+    echo "  Stage 1: AI selects top 20 categories from 4,722 options (gpt-4.1-nano)"
+    echo "  Stage 2: Algorithmic filtering to most popular L1 taxonomy layer"
+    echo "  Stage 3: AI refines to top 10 categories from filtered L1 taxonomy candidates (gpt-4.1-nano)"
+    echo "  Stage 4: Validation to ensure no AI hallucinations (algorithmic)"
+    echo "  Stage 5: AI final selection using enhanced model (gpt-4.1-mini)"
     echo ""
     echo "Examples:"
-    echo "  # Test with default sample products"
+    echo "  # Simple batch testing with default products"
     echo "  $0"
     echo ""
-    echo "  # Test custom products file"
-    echo "  $0 --products my_products.txt"
+    echo "  # Custom products file with verbose logging"
+    echo "  $0 --products my_products.txt --verbose"
     echo ""
-    echo "  # Use different AI model with verbose logging"
-    echo "  $0 --model gpt-4.1-mini --verbose"
+    echo "  # Custom model for Stages 1&3 (Stage 4 always uses gpt-4.1-mini)"
+    echo "  $0 --products my_products.txt --model gpt-4o"
     echo ""
     echo "Output Format:"
-    echo "  Clean format showing \"[Product]: Category\""
-    echo ""
-    echo "  Example output:"
-    echo "    [iPhone 14 Pro]: Smartphones"
-    echo "    [Xbox Wireless Controller]: Game Controllers"
-    echo "    [Nike Air Max 270]: Athletic Shoes"
-    echo ""
-    echo "For detailed analysis with metrics and JSON output,"
-    echo "use the single product classifier in interactive mode."
+    echo "  Each product shows: [Product Description] followed by Final Category"
+    echo "  Clean, minimal output perfect for demonstrations and validation"
     echo ""
     exit 1
 }
@@ -175,8 +185,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Pre-flight checks and validation
-echo -e "${BLUE}🧪 Taxonomy Navigator - Simple Batch Product Tester${NC}"
-echo -e "${BLUE}==========================================${NC}"
+echo -e "${BLUE}🔍 Taxonomy Navigator - Batch Product Analysis (5-Stage AI Process)${NC}"
+echo -e "${BLUE}================================================================${NC}"
 echo ""
 
 # Validate input files exist
@@ -194,8 +204,7 @@ product_count=$(count_products "$PRODUCTS_FILE")
 echo -e "${GREEN}📦 Products file: $PRODUCTS_FILE${NC}"
 echo -e "${GREEN}📊 Products to test: $product_count${NC}"
 echo -e "${GREEN}📁 Taxonomy file: $TAXONOMY_FILE${NC}"
-
-echo -e "${GREEN}🤖 AI Model: $MODEL${NC}"
+echo -e "${GREEN}🤖 AI Models: Stages 1&3 use $MODEL, Stage 4 uses gpt-4.1-mini${NC}"
 
 if [ -n "$VERBOSE" ]; then
     echo -e "${GREEN}🔍 Verbose logging enabled${NC}"
