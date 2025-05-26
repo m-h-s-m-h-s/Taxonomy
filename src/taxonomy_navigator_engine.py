@@ -13,7 +13,7 @@ of categories to a single best match:
 🎯 STAGE 1: L1 TAXONOMY SELECTION (AI-Powered)
    - Purpose: Identify the 3 most relevant top-level taxonomy categories
    - Input: Product info + ALL unique L1 taxonomy categories (no duplicates)
-   - AI Model: gpt-4.1-nano (unified model for all stages)
+   - AI Model: gpt-4.1-nano
    - Process: AI selects 3 most relevant L1 categories (e.g., "Electronics", "Hardware", "Apparel")
    - Output: List of 3 L1 category names
    - Key Feature: Focuses on broad category domains first for better accuracy
@@ -22,7 +22,7 @@ of categories to a single best match:
 🔍 STAGE 2A: FIRST L1 LEAF SELECTION (AI-Powered)
    - Purpose: Select the first 10 best leaf nodes from the FIRST chosen L1 taxonomy
    - Input: Product info + ALL leaf nodes from the FIRST selected L1 category
-   - AI Model: gpt-4.1-nano (unified model for all stages)
+   - AI Model: gpt-4.1-nano
    - Process: AI selects top 10 most relevant leaf categories from the FIRST L1 taxonomy
    - Output: List of up to 10 leaf node names from the FIRST L1 taxonomy
    - Key Feature: Focuses exclusively on the first L1 taxonomy for better granularity
@@ -31,7 +31,7 @@ of categories to a single best match:
 🔍 STAGE 2B: SECOND L1 LEAF SELECTION (AI-Powered)
    - Purpose: Select the second 10 best leaf nodes from the SECOND chosen L1 taxonomy
    - Input: Product info + ALL leaf nodes from the SECOND selected L1 category
-   - AI Model: gpt-4.1-nano (unified model for all stages)
+   - AI Model: gpt-4.1-nano
    - Process: AI selects top 10 most relevant leaf categories from the SECOND L1 taxonomy
    - Output: List of up to 10 leaf node names from the SECOND L1 taxonomy
    - Key Feature: Focuses exclusively on the second L1 taxonomy for better granularity
@@ -40,7 +40,7 @@ of categories to a single best match:
 🔍 STAGE 2C: THIRD L1 LEAF SELECTION (AI-Powered)
    - Purpose: Select the third 10 best leaf nodes from the THIRD chosen L1 taxonomy
    - Input: Product info + ALL leaf nodes from the THIRD selected L1 category
-   - AI Model: gpt-4.1-nano (unified model for all stages)
+   - AI Model: gpt-4.1-nano
    - Process: AI selects top 10 most relevant leaf categories from the THIRD L1 taxonomy
    - Output: List of up to 10 leaf node names from the THIRD L1 taxonomy
    - Key Feature: Focuses exclusively on the third L1 taxonomy for better granularity
@@ -49,7 +49,7 @@ of categories to a single best match:
 🏆 STAGE 3: FINAL SELECTION (AI-Powered with Anti-Hallucination)
    - Purpose: Make the final decision from the combined 30 leaf nodes from Stages 2A, 2B, 2C
    - Input: Product info + up to 30 leaf nodes from combined Stage 2 results
-   - AI Model: gpt-4.1-mini for stage 3
+   - AI Model: gpt-4.1
    - Process: 
      * Construct clear, professional prompt with specific constraints
      * Present up to 30 categories as numbered options (leaf names only)
@@ -66,7 +66,7 @@ of categories to a single best match:
 ✅ Improved Focus: Each stage focuses on appropriate level of granularity
 ✅ Accuracy: Each L1 taxonomy is explored independently for better coverage
 ✅ Scalability: Handles large taxonomies without overwhelming the AI
-✅ Model Strategy: Uses gpt-4.1-mini for stage 3 for consistency
+✅ Model Strategy: Uses gpt-4.1-nano for stages 1 and 2, gpt-4.1 for stage 3
 ✅ Manageable Chunks: Stage 2 broken into 3 parts of 10 items each for better AI performance
 
 === KEY TECHNICAL FEATURES ===
@@ -76,7 +76,7 @@ of categories to a single best match:
 - Comprehensive Error Handling: Graceful handling of API errors and edge cases
 - Duplicate Removal: Multiple stages of deduplication for clean results
 - L1 Deduplication: Ensures no duplicate L1 categories are sent to AI
-- Mixed Model Strategy: gpt-4.1-mini for stage 1, gpt-4.1-nano for stage 2, gpt-4.1-mini for stage 3
+- Mixed Model Strategy: gpt-4.1-nano for stages 1 and 2, gpt-4.1 for stage 3
 - Death Penalty Prompting: Aggressive anti-hallucination prompts threatening "death" for wrong answers
 - Zero Context API Calls: Each API call is a blank slate with no conversation history
 - Anti-Hallucination Measures: Robust validation and bounds checking in all AI stages
@@ -172,14 +172,14 @@ class TaxonomyNavigator:
         best_category = paths[best_idx][-1]  # e.g., "Smartphones"
     """
 
-    def __init__(self, taxonomy_file: str, api_key: str = None, model: str = "gpt-4.1-mini"):
+    def __init__(self, taxonomy_file: str, api_key: str = None, model: str = "gpt-4.1-nano"):
         """
         Initialize the TaxonomyNavigator with taxonomy data and API configuration.
 
         Args:
             taxonomy_file (str): Path to the taxonomy file (Google Product Taxonomy format)
             api_key (str, optional): OpenAI API key. If None, will use get_api_key() utility
-            model (str): OpenAI model for stages 1 and 3. Defaults to "gpt-4.1-mini"
+            model (str): OpenAI model for stages 1 and 3. Defaults to "gpt-4.1-nano"
             
         Raises:
             ValueError: If API key cannot be obtained
@@ -680,8 +680,8 @@ class TaxonomyNavigator:
         Stage 3: Select the single best match from the 30 leaf nodes from Stage 2.
         
         This method implements the third stage of classification using enhanced prompting
-        and gpt-4.1-mini for the final selection from the top 30 filtered candidates.
-        The gpt-4.1-mini model provides consistent behavior throughout the three-stage process.
+        and gpt-4.1 for the final selection from the top 30 filtered candidates.
+        The gpt-4.1 model provides consistent behavior throughout the three-stage process.
         
         ANTI-HALLUCINATION MEASURES:
         - Hardcore prompting with explicit constraints prevents wrong selections
@@ -693,7 +693,7 @@ class TaxonomyNavigator:
         Process:
         1. Construct structured selection prompt using only leaf names from Stage 2
         2. Present categories as numbered options (leaf names only)
-        3. AI identifies core product and selects best match using gpt-4.1-mini
+        3. AI identifies core product and selects best match using gpt-4.1
         4. Parse AI response with robust validation and bounds checking
         5. Validate selected index is within bounds of filtered categories
         6. Return guaranteed valid index of selected category OR -1 for complete failure
@@ -788,11 +788,11 @@ class TaxonomyNavigator:
         3. Stage 2A: AI selects top 10 leaf nodes from the chosen L1 taxonomies
         4. Stage 2B: AI selects next 10 leaf nodes (excluding 2A results)
         5. Stage 2C: AI selects final 10 leaf nodes (excluding 2A and 2B results)
-        6. Stage 3: AI selects best match from combined candidates using gpt-4.1-mini
+        6. Stage 3: AI selects best match from combined candidates using gpt-4.1
         7. Return structured results with best match index
         
         Improvements in v5.0:
-        - Updated Stage 3 to use gpt-4.1-mini for consistent behavior
+        - Updated Stage 3 to use gpt-4.1 for consistent behavior
         - Enhanced error handling with detailed logging for all three stages
         - Improved tie-handling in Stage 2
         - Maintained backward compatibility with existing return format
