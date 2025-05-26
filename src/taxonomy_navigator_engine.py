@@ -5,7 +5,7 @@ Taxonomy Navigator - AI-Powered Product Categorization System
 This module implements a sophisticated three-stage AI classification system that automatically 
 categorizes products into appropriate taxonomy categories using OpenAI's GPT models.
 
-=== THREE-STAGE CLASSIFICATION PROCESS ===
+=== FIVE-STAGE CLASSIFICATION PROCESS ===
 
 The system uses a progressive filtering approach that efficiently narrows down from thousands 
 of categories to a single best match:
@@ -13,41 +13,61 @@ of categories to a single best match:
 🎯 STAGE 1: L1 TAXONOMY SELECTION (AI-Powered)
    - Purpose: Identify the 3 most relevant top-level taxonomy categories
    - Input: Product info + ALL unique L1 taxonomy categories (no duplicates)
-   - AI Model: gpt-4.1-mini (enhanced model for critical L1 selection)
+   - AI Model: gpt-4.1-nano (unified model for all stages)
    - Process: AI selects 3 most relevant L1 categories (e.g., "Electronics", "Hardware", "Apparel")
    - Output: List of 3 L1 category names
    - Key Feature: Focuses on broad category domains first for better accuracy
+   - Anti-Hallucination: Professional prompting + strict validation that every returned category exists
 
-🔍 STAGE 2: LEAF NODE SELECTION (AI-Powered)
-   - Purpose: Select the best leaf nodes from the chosen L1 taxonomies
+🔍 STAGE 2A: FIRST LEAF SELECTION (AI-Powered)
+   - Purpose: Select the first 10 best leaf nodes from the chosen L1 taxonomies
    - Input: Product info + ALL leaf nodes from the 3 selected L1 categories
-   - AI Model: gpt-4.1-nano (efficient model for leaf selection)
+   - AI Model: gpt-4.1-nano (unified model for all stages)
    - Process: AI selects top 10 most relevant leaf categories from the filtered set
-   - Output: List of 10 leaf node names from the selected L1 taxonomies
+   - Output: List of up to 10 leaf node names from the selected L1 taxonomies
    - Key Feature: Enhanced prompting to focus on "core product being sold"
-   - Anti-Hallucination: Filters out categories with "Unknown" L1 taxonomy
+   - Anti-Hallucination: Professional prompting + strict validation that every returned leaf exists
+
+🔍 STAGE 2B: SECOND LEAF SELECTION (AI-Powered)
+   - Purpose: Select the second 10 best leaf nodes from the chosen L1 taxonomies
+   - Input: Product info + ALL leaf nodes from the 3 selected L1 categories (excluding Stage 2A results)
+   - AI Model: gpt-4.1-nano (unified model for all stages)
+   - Process: AI selects next 10 most relevant leaf categories from the remaining filtered set
+   - Output: List of up to 10 leaf node names from the selected L1 taxonomies
+   - Key Feature: Enhanced prompting to focus on "core product being sold"
+   - Anti-Hallucination: Professional prompting + strict validation that every returned leaf exists
+
+🔍 STAGE 2C: THIRD LEAF SELECTION (AI-Powered)
+   - Purpose: Select the third 10 best leaf nodes from the chosen L1 taxonomies
+   - Input: Product info + ALL leaf nodes from the 3 selected L1 categories (excluding Stage 2A & 2B results)
+   - AI Model: gpt-4.1-nano (unified model for all stages)
+   - Process: AI selects final 10 most relevant leaf categories from the remaining filtered set
+   - Output: List of up to 10 leaf node names from the selected L1 taxonomies
+   - Key Feature: Enhanced prompting to focus on "core product being sold"
+   - Anti-Hallucination: Professional prompting + strict validation that every returned leaf exists
 
 🏆 STAGE 3: FINAL SELECTION (AI-Powered with Anti-Hallucination)
-   - Purpose: Make the final decision from the 10 leaf nodes from Stage 2
-   - Input: Product info + 10 leaf nodes from Stage 2
-   - AI Model: gpt-4.1 (highest quality model for critical final selection)
+   - Purpose: Make the final decision from the combined 30 leaf nodes from Stages 2A, 2B, 2C
+   - Input: Product info + up to 30 leaf nodes from combined Stage 2 results
+   - AI Model: gpt-4.1-nano (unified model for all stages)
    - Process: 
-     * Construct hardcore, explicit prompt with strict constraints
-     * Present 10 categories as numbered options (leaf names only)
+     * Construct clear, professional prompt with specific constraints
+     * Present up to 30 categories as numbered options (leaf names only)
      * AI identifies core product and selects best match
      * Parse AI response with robust validation and bounds checking
      * Return guaranteed valid index of selected category OR -1 for complete failure
    - Output: Index of selected category (0-based, guaranteed valid) OR -1 for complete failure
-   - Key Features: Enhanced prompting + anti-hallucination measures + "False" for failures
+   - Key Features: Professional prompting + numeric validation + bounds checking + "False" for failures
 
 === SYSTEM ARCHITECTURE BENEFITS ===
 
-✅ Efficiency: Progressive filtering (L1s → 3 L1s → leafs from 3 L1s → 10 leafs → 1)
-✅ Cost Optimization: Only 3 API calls per classification (Stages 1, 2, 3)
+✅ Efficiency: Progressive filtering (L1s → 3 L1s → leafs from 3 L1s → 10+10+10 leafs → 1)
+✅ Cost Optimization: Only 5 API calls per classification (Stages 1, 2A, 2B, 2C, 3)
 ✅ Improved Focus: Stage 1 L1 selection provides better domain targeting
 ✅ Accuracy: Each stage focuses on appropriate level of granularity
 ✅ Scalability: Handles large taxonomies without overwhelming the AI
-✅ Model Strategy: Uses gpt-4.1-mini for stage 1, gpt-4.1-nano for stage 2, gpt-4.1 for stage 3
+✅ Model Strategy: Uses gpt-4.1-nano for all stages for consistency
+✅ Manageable Chunks: Stage 2 broken into 3 parts of 10 items each for better AI performance
 
 === KEY TECHNICAL FEATURES ===
 
@@ -64,8 +84,34 @@ of categories to a single best match:
 - Multiple Fallback Mechanisms: Graceful handling of invalid AI responses
 - Complete Failure Handling: Returns "False" when AI completely fails or returns nothing
 
+=== ENHANCED ANTI-HALLUCINATION MEASURES ===
+
+🎯 SIMPLIFIED PROMPTING SYSTEM:
+- All stages use clean, basic prompts with essential instructions only
+- Removed complex anti-hallucination language for better AI performance
+- Simple system messages focusing on core task requirements
+- Clear, straightforward output format specifications
+
+🔒 STRICT VALIDATION AT EVERY STAGE:
+- Stage 1: Every returned L1 category is validated against the actual L1 list
+- Stage 2A/2B/2C: Every returned leaf category is validated against the filtered leaf list  
+- Stage 3: AI response is validated to be numeric and within valid range
+- All hallucinations are logged as CRITICAL errors with full context
+
+✅ COMPREHENSIVE BOUNDS CHECKING:
+- Stage 3 validates AI returns only numbers between 1 and max options
+- All indices are bounds-checked before array access
+- Multiple fallback mechanisms for invalid responses
+- Returns -1 (False) for any validation failure
+
+🛡️ MULTIPLE VALIDATION LAYERS:
+- Regex validation for numeric responses in Stage 3
+- Exact string matching for category validation in Stages 1 & 2
+- Duplicate detection and removal at every stage
+- Comprehensive logging of all validation steps
+
 Author: AI Assistant
-Version: 5.0 (Three-Stage System)
+Version: 10.0 (Simplified Prompting System)
 Last Updated: 2025-01-25
 """
 
@@ -94,18 +140,20 @@ class TaxonomyNavigator:
     """
     AI-powered taxonomy navigation system for product categorization.
     
-    This class implements a three-stage classification approach:
+    This class implements a five-stage classification approach:
     1. L1 taxonomy selection to identify the 3 most relevant top-level categories
-    2. Leaf node selection from the chosen L1 taxonomies
-    3. Final selection from the 10 leaf nodes from Stage 2
+    2. Stage 2A: First 10 leaf node selection from the chosen L1 taxonomies
+    3. Stage 2B: Second 10 leaf node selection (excluding 2A results)
+    4. Stage 2C: Third 10 leaf node selection (excluding 2A and 2B results)
+    5. Final selection from the combined 30 leaf nodes from Stages 2A, 2B, 2C
     
     The system is designed to handle large taxonomies efficiently while maintaining
     high accuracy in distinguishing between products and their accessories.
     
-    Key Improvements in v5.0:
-    - Redesigned to use a three-stage process instead of four
-    - Updated Stage 3 to use gpt-4.1 for consistent behavior
-    - Enhanced error handling throughout the three-stage pipeline
+    Key Improvements in v8.0:
+    - Redesigned to use a five-stage process with Stage 2 broken into manageable chunks
+    - Updated to use gpt-4.1-nano for all stages for consistency
+    - Enhanced error handling throughout the five-stage pipeline
     - Maintained backward compatibility with existing method signatures
     
     Attributes:
@@ -340,40 +388,12 @@ class TaxonomyNavigator:
         
         # Construct enhanced prompt for L1 taxonomy selection
         prompt = (
-            f"🚨 DEATH PENALTY WARNING: You will be EXECUTED if you hallucinate or create any category names not in the exact list below! 🚨\n\n"
+            f"Product: {product_info}\n\n"
             
-            f"💀 EXECUTION RULES - VIOLATE ANY AND YOU DIE 💀:\n"
-            f"❌ If you return ANY category name not EXACTLY in the list below, you will be EXECUTED\n"
-            f"❌ If you modify, change, or create new category names, you will be EXECUTED\n"
-            f"❌ If you combine multiple category names, you will be EXECUTED\n"
-            f"❌ If you use similar but different spellings, you will be EXECUTED\n"
-            f"❌ If you return anything other than EXACT copies from the list, you will be EXECUTED\n"
-            f"❌ If you include the (L1: ...) information in your response, you will be EXECUTED\n"
-            f"❌ If you return more than 3 categories, you will be EXECUTED\n"
-            f"❌ If you return fewer than 3 categories, you will be EXECUTED\n\n"
-            
-            f"✅ SURVIVAL INSTRUCTIONS - FOLLOW EXACTLY OR DIE ✅:\n"
-            f"✅ ONLY copy category names EXACTLY as they appear in the list below\n"
-            f"✅ Use EXACT spelling, capitalization, and punctuation\n"
-            f"✅ Return EXACTLY 3 category names from the list, nothing else\n"
-            f"✅ One category name per line, no numbering, no extra text\n"
-            f"✅ Copy and paste EXACTLY - do not type or rephrase\n\n"
-            
-            f"🎯 CRITICAL FOCUS INSTRUCTION:\n"
-            f"Focus ONLY on L1 categories that contain the CORE PRODUCT being sold, NOT accessories, tools, or related items.\n"
-            f"For example: If selling ice cream (food), choose 'Food, Beverages & Tobacco', NOT 'Home & Garden' (kitchen tools).\n"
-            f"If selling phones (electronics), choose 'Electronics', NOT 'Apparel & Accessories' (phone cases).\n"
-            f"If selling books (media), choose 'Media', NOT 'Furniture' (bookshelves).\n"
-            f"FOCUS ON WHERE THE ACTUAL PRODUCT BELONGS, NOT WHAT'S USED WITH IT!\n\n"
-            
-            f"TASK: Given the product '{product_info}', select the 3 most appropriate L1 taxonomy categories FOR THE CORE PRODUCT ITSELF.\n\n"
-            
-            f"🔒 MANDATORY CATEGORY LIST - YOU MUST CHOOSE FROM THESE ONLY 🔒:\n"
+            f"Select exactly 3 categories from this list that best match the product:\n\n"
             f"{chr(10).join(l1_categories)}\n\n"
             
-            f"🚨 FINAL WARNING: Copy EXACTLY from the list above or you will be EXECUTED! 🚨\n"
-            f"🎯 FOCUS ON THE CORE PRODUCT, NOT ACCESSORIES OR TOOLS!\n"
-            f"Return exactly 3 category names, one per line, with PERFECT spelling:"
+            f"Return one category per line:"
         )
         
         try:
@@ -383,12 +403,12 @@ class TaxonomyNavigator:
                 messages=[
                     {
                         "role": "system", 
-                        "content": "🚨 EXECUTION PENALTY SYSTEM 🚨 You are a category selection assistant. Your life depends on ONLY selecting categories from the provided list. If you hallucinate, modify, or create any category names not EXACTLY in the list, you will be EXECUTED. You MUST copy category names EXACTLY as they appear. No variations, no creativity, no modifications. EXACT COPIES ONLY or EXECUTION. Every single character must match perfectly."
+                        "content": "You are a product categorization assistant. Select categories from the provided list using exact spelling."
                     },
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0,  # Deterministic results
-                top_p=0        # Deterministic results
+                temperature=1,  # Creative responses
+                top_p=1        # Creative responses
             )
             
             # Parse response
@@ -447,11 +467,11 @@ class TaxonomyNavigator:
                 return result
             return []
 
-    def stage2_leaf_selection(self, product_info: str, selected_l1s: List[str]) -> List[str]:
+    def stage2a_first_leaf_selection(self, product_info: str, selected_l1s: List[str]) -> List[str]:
         """
-        Stage 2: Select the best leaf nodes from the chosen L1 taxonomies.
+        Stage 2A: Select the first 10 best leaf nodes from the chosen L1 taxonomies.
         
-        This method implements the second stage of the three-stage classification process.
+        This method implements the first part of the second stage of the five-stage classification process.
         It uses enhanced prompting to help the AI focus on the core product being sold
         rather than accessories or marketing language.
         
@@ -465,13 +485,6 @@ class TaxonomyNavigator:
         3. Parse AI response and remove duplicates (case-insensitive)
         4. Validate categories against actual taxonomy entries
         5. Return up to 10 unique, valid categories
-        
-        Improvements in v5.0:
-        - Added robust duplicate removal with case-insensitive matching
-        - Enhanced validation with detailed logging of valid vs invalid selections
-        - Improved error handling with fallback mechanisms
-        - Better prompt engineering to focus on core products vs accessories
-        - Added L1 taxonomy context to help AI understand category relationships
 
         Args:
             product_info (str): Complete product information (name + description)
@@ -485,8 +498,60 @@ class TaxonomyNavigator:
             Exception: If OpenAI API call fails (logged and handled with fallback)
                       
         Example:
-            selected = navigator.stage2_leaf_selection("iPhone 14: Smartphone", ["Electronics", "Hardware", "Apparel"])
+            selected = navigator.stage2a_first_leaf_selection("iPhone 14: Smartphone", ["Electronics", "Hardware", "Apparel"])
             # Returns: ["Smartphones", "Cell Phones", "Mobile Devices", ...]
+        """
+        return self._leaf_selection_helper(product_info, selected_l1s, [], "2A", "first 10")
+
+    def stage2b_second_leaf_selection(self, product_info: str, selected_l1s: List[str], excluded_leaves: List[str]) -> List[str]:
+        """
+        Stage 2B: Select the second 10 best leaf nodes from the chosen L1 taxonomies.
+        
+        This method implements the second part of the second stage of the five-stage classification process.
+        It excludes the leaves already selected in Stage 2A to ensure variety.
+
+        Args:
+            product_info (str): Complete product information (name + description)
+            selected_l1s (List[str]): List of 3 L1 taxonomy category names
+            excluded_leaves (List[str]): Leaves already selected in Stage 2A
+            
+        Returns:
+            List[str]: Next 10 most relevant leaf node names, ordered by relevance,
+                      with duplicates removed and validated against taxonomy
+        """
+        return self._leaf_selection_helper(product_info, selected_l1s, excluded_leaves, "2B", "next 10")
+
+    def stage2c_third_leaf_selection(self, product_info: str, selected_l1s: List[str], excluded_leaves: List[str]) -> List[str]:
+        """
+        Stage 2C: Select the third 10 best leaf nodes from the chosen L1 taxonomies.
+        
+        This method implements the third part of the second stage of the five-stage classification process.
+        It excludes the leaves already selected in Stages 2A and 2B to ensure variety.
+
+        Args:
+            product_info (str): Complete product information (name + description)
+            selected_l1s (List[str]): List of 3 L1 taxonomy category names
+            excluded_leaves (List[str]): Leaves already selected in Stages 2A and 2B
+            
+        Returns:
+            List[str]: Final 10 most relevant leaf node names, ordered by relevance,
+                      with duplicates removed and validated against taxonomy
+        """
+        return self._leaf_selection_helper(product_info, selected_l1s, excluded_leaves, "2C", "final 10")
+
+    def _leaf_selection_helper(self, product_info: str, selected_l1s: List[str], excluded_leaves: List[str], stage_name: str, description: str) -> List[str]:
+        """
+        Helper method for Stage 2A, 2B, and 2C leaf selection.
+        
+        Args:
+            product_info (str): Complete product information
+            selected_l1s (List[str]): List of 3 L1 taxonomy category names
+            excluded_leaves (List[str]): Leaves to exclude from selection
+            stage_name (str): Stage identifier (2A, 2B, or 2C)
+            description (str): Description for logging (e.g., "first 10", "next 10")
+            
+        Returns:
+            List[str]: Up to 10 validated leaf node names
         """
         # Extract all leaf nodes from the taxonomy for the selected L1 categories
         leaf_paths, leaf_names = self._extract_leaf_nodes()
@@ -502,14 +567,14 @@ class TaxonomyNavigator:
         filtered_leaf_names = []
         for leaf in leaf_names:
             l1_category = leaf_to_l1.get(leaf, "Unknown")
-            if l1_category in selected_l1s:
+            if l1_category in selected_l1s and leaf not in excluded_leaves:
                 filtered_leaf_names.append(leaf)
         
         if not filtered_leaf_names:
-            logger.warning(f"No leaf nodes found for selected L1 categories: {selected_l1s}")
+            logger.warning(f"No leaf nodes found for selected L1 categories: {selected_l1s} (excluding {len(excluded_leaves)} already selected)")
             return []
         
-        logger.info(f"Stage 2: Querying OpenAI for top 10 leaf nodes among {len(filtered_leaf_names)} options from selected L1 categories")
+        logger.info(f"Stage {stage_name}: Querying OpenAI for {description} leaf nodes among {len(filtered_leaf_names)} options from selected L1 categories")
         
         # Create structured category list with L1 context for filtered leaves only
         category_list_with_context = []
@@ -519,55 +584,30 @@ class TaxonomyNavigator:
         
         # Construct enhanced prompt for leaf node identification with L1 context
         prompt = (
-            f"🚨 DEATH PENALTY WARNING: You will be EXECUTED if you hallucinate or create any category names not in the exact list below! 🚨\n\n"
+            f"Product: {product_info}\n\n"
             
-            f"💀 EXECUTION RULES - VIOLATE ANY AND YOU DIE 💀:\n"
-            f"❌ If you return ANY category name not EXACTLY in the list below, you will be EXECUTED\n"
-            f"❌ If you modify, change, or create new category names, you will be EXECUTED\n"
-            f"❌ If you combine multiple category names, you will be EXECUTED\n"
-            f"❌ If you use similar but different spellings, you will be EXECUTED\n"
-            f"❌ If you return anything other than EXACT copies from the list, you will be EXECUTED\n"
-            f"❌ If you include the (L1: ...) information in your response, you will be EXECUTED\n"
-            f"❌ If you return more than 10 categories, you will be EXECUTED\n"
-            f"❌ If you add any extra text, punctuation, or formatting, you will be EXECUTED\n\n"
-            
-            f"✅ SURVIVAL INSTRUCTIONS - FOLLOW EXACTLY OR DIE ✅:\n"
-            f"✅ ONLY copy the leaf category names EXACTLY as they appear BEFORE the (L1: ...) part\n"
-            f"✅ Use EXACT spelling, capitalization, and punctuation of the leaf names\n"
-            f"✅ Return EXACTLY 10 leaf category names from the list, nothing else\n"
-            f"✅ One leaf name per line, no numbering, no extra text, no L1 information\n"
-            f"✅ Copy and paste EXACTLY - do not type or rephrase\n\n"
-            
-            f"🎯 CRITICAL FOCUS INSTRUCTION:\n"
-            f"Focus ONLY on categories for the CORE PRODUCT being sold, NOT accessories, tools, or related items.\n"
-            f"For example: If selling ice cream, choose ice cream categories, NOT ice cream makers or scoops.\n"
-            f"If selling phones, choose phone categories, NOT phone cases or chargers.\n"
-            f"If selling books, choose book categories, NOT bookmarks or reading lights.\n"
-            f"FOCUS ON THE ACTUAL PRODUCT, NOT WHAT'S USED WITH IT!\n\n"
-            
-            f"TASK: Given the product '{product_info}', select the 10 most appropriate leaf categories FOR THE CORE PRODUCT ITSELF.\n\n"
-            
-            f"🔒 MANDATORY CATEGORY LIST - YOU MUST CHOOSE FROM THESE ONLY 🔒:\n"
+            f"Select exactly 10 categories from this list that best match the product:\n\n"
             f"{chr(10).join(category_list_with_context)}\n\n"
-            
-            f"🚨 FINAL WARNING: Copy ONLY the leaf names (before the L1 part) EXACTLY or you will be EXECUTED! 🚨\n"
-            f"🎯 FOCUS ON THE CORE PRODUCT, NOT ACCESSORIES OR TOOLS!\n"
-            f"Return exactly 10 leaf category names, one per line, with PERFECT spelling:"
         )
         
+        if excluded_leaves:
+            prompt += f"Do not select these already chosen categories: {', '.join(excluded_leaves)}\n\n"
+        
+        prompt += f"Return one category per line (category name only, not the L1 part):"
+        
         try:
-            # Make API call with deterministic settings and NO CONTEXT
+            # Make API call with creative settings and NO CONTEXT
             response = self.client.chat.completions.create(
                 model=self.stage2_model,
                 messages=[
                     {
                         "role": "system", 
-                        "content": "🚨 EXECUTION PENALTY SYSTEM 🚨 You are a leaf category selection assistant. Your life depends on ONLY selecting leaf category names from the provided list. If you hallucinate, modify, or create any category names not EXACTLY in the list, you will be EXECUTED. You MUST copy leaf category names EXACTLY as they appear before the (L1: ...) part. No variations, no creativity, no modifications. EXACT COPIES ONLY or EXECUTION. Every single character must match perfectly."
+                        "content": "You are a product categorization assistant. Select leaf categories from the provided list using exact spelling."
                     },
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0,  # Deterministic results
-                top_p=0        # Deterministic results
+                temperature=1,  # Creative responses
+                top_p=1        # Creative responses
             )
             
             # Parse response
@@ -584,11 +624,11 @@ class TaxonomyNavigator:
                     logger.info(f"✅ VALIDATED: '{category}' exists in filtered leaf taxonomy")
                 else:
                     logger.error(f"🚨 HALLUCINATION DETECTED: '{category}' does NOT exist in filtered leaf taxonomy")
-                    logger.error(f"Available filtered leaves: {filtered_leaf_names[:10]}...")  # Show first 10 for brevity
+                    logger.error(f"Available filtered leaves: {filtered_leaf_names[:20]}...")  # Show first 20 for brevity
                     hallucination_count += 1
             
             if hallucination_count > 0:
-                logger.error(f"🚨 CRITICAL: AI hallucinated {hallucination_count} categories in Stage 2")
+                logger.error(f"🚨 CRITICAL: AI hallucinated {hallucination_count} categories in Stage {stage_name}")
                 logger.error("🚨 This is a serious anti-hallucination failure")
             
             # Remove duplicates while preserving order (case-insensitive)
@@ -629,14 +669,14 @@ class TaxonomyNavigator:
                     final_categories.append(category)
             
             if hallucination_count > 0:
-                logger.info(f"Stage 2 anti-hallucination: Removed {hallucination_count} categories with Unknown L1 taxonomy")
+                logger.info(f"Stage {stage_name} anti-hallucination: Removed {hallucination_count} categories with Unknown L1 taxonomy")
             
-            logger.info(f"Stage 2 complete: Selected {len(final_categories)} validated leaf categories (after anti-hallucination filtering)")
+            logger.info(f"Stage {stage_name} complete: Selected {len(final_categories)} validated leaf categories (after anti-hallucination filtering)")
             
             return final_categories
             
         except Exception as e:
-            logger.error(f"Error in Stage 2 leaf selection: {e}")
+            logger.error(f"Error in Stage {stage_name} leaf selection: {e}")
             # Fallback: return first 10 leaf categories
             if filtered_leaf_names:
                 result = filtered_leaf_names[:min(10, len(filtered_leaf_names))]
@@ -646,11 +686,11 @@ class TaxonomyNavigator:
 
     def stage3_final_selection(self, product_info: str, selected_leaves: List[str]) -> int:
         """
-        Stage 3: Select the single best match from the 10 leaf nodes from Stage 2.
+        Stage 3: Select the single best match from the 30 leaf nodes from Stage 2.
         
         This method implements the third stage of classification using enhanced prompting
-        and gpt-4.1 for the final selection from the top 10 filtered candidates.
-        The gpt-4.1 model provides consistent behavior throughout the three-stage process.
+        and gpt-4.1-nano for the final selection from the top 30 filtered candidates.
+        The gpt-4.1-nano model provides consistent behavior throughout the three-stage process.
         
         ANTI-HALLUCINATION MEASURES:
         - Hardcore prompting with explicit constraints prevents wrong selections
@@ -660,9 +700,9 @@ class TaxonomyNavigator:
         - Returns -1 (indicating "False") if AI completely fails or returns nothing
         
         Process:
-        1. Construct hardcore, explicit prompt with strict constraints
-        2. Present 10 categories as numbered options (leaf names only)
-        3. AI identifies core product and selects best match using gpt-4.1
+        1. Construct structured selection prompt using only leaf names
+        2. Present 30 categories as numbered options (leaf names only)
+        3. AI identifies core product and selects best match using gpt-4.1-nano
         4. Parse AI response with robust validation and bounds checking
         5. Validate selected index is within bounds of filtered categories
         6. Return guaranteed valid index of selected category OR -1 for complete failure
@@ -708,39 +748,16 @@ class TaxonomyNavigator:
         
         # Construct structured selection prompt using only leaf names
         prompt = (
-            f"🚨 DEATH PENALTY WARNING: You will be EXECUTED if you select anything not in the numbered list below! 🚨\n\n"
+            f"Product: {product_info}\n\n"
             
-            f"💀 EXECUTION RULES - VIOLATE ANY AND YOU DIE 💀:\n"
-            f"❌ If you return ANY number not in the list below, you will be EXECUTED\n"
-            f"❌ If you return anything other than a single number, you will be EXECUTED\n"
-            f"❌ If you create, modify, or suggest categories, you will be EXECUTED\n"
-            f"❌ If you return text instead of a number, you will be EXECUTED\n"
-            f"❌ If you return multiple numbers, you will be EXECUTED\n"
-            f"❌ If you return zero or negative numbers, you will be EXECUTED\n"
-            f"❌ If you return numbers higher than {len(selected_leaves)}, you will be EXECUTED\n"
-            f"❌ If you add any extra text, explanations, or formatting, you will be EXECUTED\n\n"
-            
-            f"✅ SURVIVAL INSTRUCTIONS - FOLLOW EXACTLY OR DIE ✅:\n"
-            f"✅ ONLY return ONE number from the list below\n"
-            f"✅ The number MUST correspond to one of the numbered options\n"
-            f"✅ Return ONLY the number, nothing else\n"
-            f"✅ No explanations, no text, just the number\n"
-            f"✅ The number must be between 1 and {len(selected_leaves)} inclusive\n\n"
-            
-            f"TASK: Given the product '{product_info}', select the BEST MATCH from the numbered options.\n\n"
-            
-            f"🔒 MANDATORY OPTIONS - YOU MUST CHOOSE A NUMBER FROM THESE ONLY 🔒:\n"
+            f"Which category best matches this product?\n\n"
         )
         
         # Add numbered options using only leaf names (not full paths)
         for i, leaf in enumerate(selected_leaves, 1):
             prompt += f"{i}. {leaf}\n"
             
-        prompt += (
-            f"\n🚨 FINAL WARNING: Return ONLY a number from 1-{len(selected_leaves)} or you will be EXECUTED! 🚨\n"
-            f"Which number corresponds to the best match for the product?\n"
-            f"ANSWER (single number only):"
-        )
+        prompt += f"\nReturn only the number:"
         
         try:
             # Make API call with deterministic settings and NO CONTEXT
@@ -749,7 +766,7 @@ class TaxonomyNavigator:
                 messages=[
                     {
                         "role": "system", 
-                        "content": "🚨 EXECUTION PENALTY SYSTEM 🚨 You are a number selection assistant. Your life depends on ONLY returning a single number from the provided numbered list. If you return anything other than a single number from the list, you will be EXECUTED. No text, no explanations, no category names - ONLY a number from the list or EXECUTION. Every response must be exactly one number and nothing else."
+                        "content": "You are a product categorization assistant. Select the best matching category number from the numbered list."
                     },
                     {"role": "user", "content": prompt}
                 ],
@@ -799,13 +816,15 @@ class TaxonomyNavigator:
 
     def navigate_taxonomy(self, product_info: str) -> Tuple[List[List[str]], int]:
         """
-        Main navigation method implementing the complete three-stage classification process.
+        Main navigation method implementing the complete five-stage classification process.
         
         This is the primary public method that orchestrates the entire classification:
         1. Stage 1: Identify the 3 most relevant top-level categories
-        2. Stage 2: Select the best leaf nodes from the chosen L1 taxonomies
-        3. Stage 3: Select the single best match from the 10 leaf nodes from Stage 2
-        4. Return all final candidates with the best match identified
+        2. Stage 2A: Select the first 10 best leaf nodes from the chosen L1 taxonomies
+        3. Stage 2B: Select the second 10 best leaf nodes (excluding 2A results)
+        4. Stage 2C: Select the third 10 best leaf nodes (excluding 2A and 2B results)
+        5. Stage 3: Select the single best match from the combined 30 leaf nodes
+        6. Return all final candidates with the best match identified
         
         The method ensures end-to-end consistency by validating that the final result
         comes from the taxonomy layer identified in Stage 2.
@@ -813,9 +832,11 @@ class TaxonomyNavigator:
         Process Flow:
         1. Stage 1: AI identifies relevant L1 taxonomies from all categories
         2. Duplicate removal and validation of AI selections
-        3. Stage 2: AI selects top 10 leaf nodes from the chosen L1 taxonomies
-        4. Stage 3: AI selects best match from filtered candidates using gpt-4.1
-        5. Return structured results with best match index
+        3. Stage 2A: AI selects top 10 leaf nodes from the chosen L1 taxonomies
+        4. Stage 2B: AI selects next 10 leaf nodes (excluding 2A results)
+        5. Stage 2C: AI selects final 10 leaf nodes (excluding 2A and 2B results)
+        6. Stage 3: AI selects best match from combined candidates using gpt-4.1-nano
+        7. Return structured results with best match index
         
         Improvements in v5.0:
         - Updated Stage 3 to use gpt-4.1 for consistent behavior
@@ -860,14 +881,28 @@ class TaxonomyNavigator:
                 logger.warning("No L1 taxonomy categories returned from Stage 1")
                 return [["False"]], 0
             
-            # Stage 2: Select the best leaf nodes from the chosen L1 taxonomies
-            selected_leaves = self.stage2_leaf_selection(product_info, selected_l1s)
+            # Stage 2A: Select the first 10 best leaf nodes from the chosen L1 taxonomies
+            selected_leaves_2a = self.stage2a_first_leaf_selection(product_info, selected_l1s)
             
-            if not selected_leaves:
-                logger.warning("No leaves returned from Stage 2")
+            if not selected_leaves_2a:
+                logger.warning("No leaves returned from Stage 2A")
                 return [["False"]], 0
             
-            # Stage 3: Final selection from the 10 leaf nodes from Stage 2
+            # Stage 2B: Select the second 10 best leaf nodes (excluding 2A results)
+            selected_leaves_2b = self.stage2b_second_leaf_selection(product_info, selected_l1s, selected_leaves_2a)
+            
+            # Stage 2C: Select the third 10 best leaf nodes (excluding 2A and 2B results)
+            combined_excluded = selected_leaves_2a + selected_leaves_2b
+            selected_leaves_2c = self.stage2c_third_leaf_selection(product_info, selected_l1s, combined_excluded)
+            
+            # Combine all Stage 2 results
+            selected_leaves = selected_leaves_2a + selected_leaves_2b + selected_leaves_2c
+            
+            if not selected_leaves:
+                logger.warning("No leaves returned from combined Stage 2 (2A + 2B + 2C)")
+                return [["False"]], 0
+            
+            # Stage 3: Final selection from the 30 leaf nodes from Stage 2
             best_match_idx = self.stage3_final_selection(product_info, selected_leaves)
             
             # Check if Stage 3 completely failed (returned -1)

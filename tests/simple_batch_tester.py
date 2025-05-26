@@ -55,17 +55,17 @@ Example Output:
   [iPhone 14 Pro: Smartphone with camera...]
   Smartphones
 
-Recent Improvements (v5.0):
-- Updated for new 3-stage classification process
-- Stage 1: L1 taxonomy selection for better domain targeting
-- Stage 2: Leaf selection from chosen L1 taxonomies
-- Stage 3: Final selection with anti-hallucination measures using gpt-4.1
-- Enhanced visual separation between products for better readability
-- Improved error handling and user input validation
-- Better integration with updated taxonomy navigator engine
+Recent Improvements (v10.0):
+- Simplified all prompting to basic, clean instructions
+- Removed complex anti-hallucination language for better AI performance
+- Stage prompts now use straightforward, essential instructions only
+- System messages focus on core task requirements without threats
+- Maintained 5-stage classification process with manageable 10-item chunks
+- Enhanced AI performance through cleaner, more direct communication
+- Preserved all validation and bounds checking mechanisms
 
 Author: AI Assistant
-Version: 5.0
+Version: 10.0
 Last Updated: 2025-01-25
 """
 
@@ -166,19 +166,41 @@ def classify_product_with_stage_display(navigator: TaxonomyNavigator, product_li
             for i, l1_category in enumerate(selected_l1s, 1):
                 print(f"   {i:2d}. {l1_category}")
             
-            # Stage 2: Show leaf selection from chosen L1 taxonomies
-            print(f"\n📋 STAGE 2 - AI selecting top 10 leaf nodes from chosen L1 taxonomies...")
-            selected_leaves = navigator.stage2_leaf_selection(product_line, selected_l1s)
+            # Stage 2A: Show first leaf selection from chosen L1 taxonomies
+            print(f"\n📋 STAGE 2A - AI selecting first 10 leaf nodes from chosen L1 taxonomies...")
+            selected_leaves_2a = navigator.stage2a_first_leaf_selection(product_line, selected_l1s)
             
-            print(f"\n✅ AI selected {len(selected_leaves)} leaf nodes from selected L1 categories:")
+            print(f"\n✅ AI selected {len(selected_leaves_2a)} leaf nodes in Stage 2A:")
             
             # Show the leaves with their L1 context
             leaf_to_l1 = navigator._create_leaf_to_l1_mapping()
-            for i, leaf in enumerate(selected_leaves, 1):
+            for i, leaf in enumerate(selected_leaves_2a, 1):
                 l1_category = leaf_to_l1.get(leaf, "Unknown")
                 print(f"   {i:2d}. {leaf} (L1: {l1_category})")
             
-            print(f"\n📋 STAGE 3 - AI selecting final match from {len(selected_leaves)} candidates...")
+            # Stage 2B: Show second leaf selection
+            print(f"\n📋 STAGE 2B - AI selecting next 10 leaf nodes (excluding Stage 2A results)...")
+            selected_leaves_2b = navigator.stage2b_second_leaf_selection(product_line, selected_l1s, selected_leaves_2a)
+            
+            print(f"\n✅ AI selected {len(selected_leaves_2b)} leaf nodes in Stage 2B:")
+            for i, leaf in enumerate(selected_leaves_2b, 1):
+                l1_category = leaf_to_l1.get(leaf, "Unknown")
+                print(f"   {i:2d}. {leaf} (L1: {l1_category})")
+            
+            # Stage 2C: Show third leaf selection
+            print(f"\n📋 STAGE 2C - AI selecting final 10 leaf nodes (excluding Stages 2A & 2B results)...")
+            combined_excluded = selected_leaves_2a + selected_leaves_2b
+            selected_leaves_2c = navigator.stage2c_third_leaf_selection(product_line, selected_l1s, combined_excluded)
+            
+            print(f"\n✅ AI selected {len(selected_leaves_2c)} leaf nodes in Stage 2C:")
+            for i, leaf in enumerate(selected_leaves_2c, 1):
+                l1_category = leaf_to_l1.get(leaf, "Unknown")
+                print(f"   {i:2d}. {leaf} (L1: {l1_category})")
+            
+            # Combine all Stage 2 results
+            all_selected_leaves = selected_leaves_2a + selected_leaves_2b + selected_leaves_2c
+            
+            print(f"\n📋 STAGE 3 - AI selecting final match from {len(all_selected_leaves)} combined candidates...")
             print("=" * 80)
         
         # Perform the full four-stage classification
@@ -216,10 +238,12 @@ Examples:
   %(prog)s --model gpt-4.1-mini                     # Use different model for stages 1&4
   %(prog)s --show-stage-paths                       # Display AI selections at each stage
   
-3-Stage Classification Process:
-  Stage 1: AI selects top 3 L1 taxonomy categories (gpt-4.1-mini)
-  Stage 2: AI selects top 10 leaf nodes from chosen L1s (gpt-4.1-nano)
-  Stage 3: AI final selection from 10 candidates (gpt-4.1 + anti-hallucination)
+5-Stage Classification Process:
+  Stage 1: AI selects top 3 L1 taxonomy categories (gpt-4.1-nano + professional prompting + validation)
+  Stage 2A: AI selects first 10 leaf nodes from chosen L1s (gpt-4.1-nano + professional prompting + validation)
+  Stage 2B: AI selects next 10 leaf nodes excluding 2A (gpt-4.1-nano + professional prompting + validation)
+  Stage 2C: AI selects final 10 leaf nodes excluding 2A & 2B (gpt-4.1-nano + professional prompting + validation)
+  Stage 3: AI final selection from 30 combined candidates (gpt-4.1-nano + professional prompting + numeric validation)
   
 Output Format:
   Each line shows: "Product Title: Leaf Category"
@@ -239,8 +263,8 @@ Output Format:
                        help='Taxonomy file path (default: data/taxonomy.en-US.txt)')
     
     # Model configuration
-    parser.add_argument('--model', default='gpt-4.1-mini', 
-                       help='OpenAI model for stages 1 and 4 (default: gpt-4.1-mini)')
+    parser.add_argument('--model', default='gpt-4.1-nano', 
+                       help='OpenAI model for all stages (default: gpt-4.1-nano)')
     parser.add_argument('--api-key', 
                        help='OpenAI API key (optional if set in environment or file)')
     
