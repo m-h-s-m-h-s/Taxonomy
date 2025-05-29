@@ -1,466 +1,350 @@
-# Taxonomy Navigator - User Guide
+# Taxonomy Navigator - Complete Usage Guide
 
-This guide explains how to use the Taxonomy Navigator system to categorize products using OpenAI's API.
+## 🚀 Getting Started - See It In Action First!
 
-## Table of Contents
-- [Installation](#installation)
-- [API Key Setup](#api-key-setup)
-- [Quick Start](#quick-start)
-- [Single Product Classification](#single-product-classification)
-- [Batch Product Testing](#batch-product-testing)
-- [Input Format](#input-format)
-- [Output Format](#output-format)
-- [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
-- [Advanced Usage](#advanced-usage)
-
-## Installation
-
-1. Clone or download the Taxonomy Navigator to your local machine
-2. Ensure you have Python 3.7 or later installed
-3. Install the required OpenAI package:
+Before diving into details, **see the system work**:
 
 ```bash
-pip install openai>=1.0.0
+# Watch the AI classify 3 random products step-by-step
+cd tests
+python3 simple_batch_tester.py
+
+# When prompted, enter: 3
+# Watch how the AI narrows down from 5,000+ categories to 1!
 ```
 
-4. Prepare your taxonomy file (or use the included taxonomy.en-US.txt)
+This visual demonstration shows you:
+- How the AI progressively filters categories
+- Why certain stages are skipped
+- How truncation saves money
+- The actual decision-making process
 
-## API Key Setup
+## 📚 How The System Works
 
-Before using the Taxonomy Navigator, you need to configure your OpenAI API key.
+Think of it like a smart filing system:
 
-### Method 1: Create API Key File (Recommended for Development)
+1. **Stage 1**: "Which department?" (Electronics? Clothing? Toys?)
+   - Character limit: First 300 characters
+   - Picks 2 main categories from ~469 options
 
-Create the API key file with your actual key:
+2. **Stage 2A**: "What type in department 1?"
+   - Character limit: First 1000 characters
+   - Picks up to 15 specific products
+
+3. **Stage 2B**: "What type in department 2?" (if needed)
+   - Character limit: First 1000 characters
+   - Skipped if only 1 department selected
+
+4. **Stage 3**: "Final choice?" (if needed)
+   - Character limit: First 700 characters
+   - Picks the single best match
+   - Skipped if only 1 option remains
+
+## 🎮 Usage Options
+
+### Option 1: Interactive Testing (Recommended for Beginners)
 
 ```bash
-# Create the API key file with your actual key
-echo "sk-your-actual-openai-api-key-here" > data/api_key.txt
+cd tests
+python3 simple_batch_tester.py
 ```
 
-You can also create the file directly in any text editor:
-1. Create a file named `api_key.txt` in the `data/` directory
-2. Add only your OpenAI API key to the file
-3. Save the file
+**What happens:**
+1. You'll be asked how many products to test
+2. Products are randomly selected from examples
+3. You see the complete classification process
+4. Results show both the process and final category
 
-**Important**: Make sure the file contains only your API key with no extra spaces or characters.
-
-### Method 2: Use Environment Variable (Recommended for Production)
-
-```bash
-# For Linux/Mac
-export OPENAI_API_KEY="sk-your-openai-api-key"
-
-# For Windows Command Prompt
-set OPENAI_API_KEY=sk-your-openai-api-key
-
-# For Windows PowerShell
-$env:OPENAI_API_KEY="sk-your-openai-api-key"
+**Example output:**
+```
+📋 STAGE 1: Identifying Main Product Categories
+   Goal: Pick 2 broad categories from all 469 options
+   
+   ✅ AI Selected 2 Main Categories:
+      1. Electronics
+      2. Software
 ```
 
-### Method 3: Provide API Key as Command Line Argument
+### Option 2: Command Line Classification
 
 ```bash
-./scripts/classify_single_product.sh --api-key "sk-your-openai-api-key" ...
-```
-
-### API Key Priority
-
-The system checks for your API key in this order:
-1. Command line argument (highest priority)
-2. Environment variable `OPENAI_API_KEY`
-3. File at `data/api_key.txt` (lowest priority)
-
-### Security Notes
-
-- **Never commit your actual API key to version control**
-- The `data/api_key.txt` file is in `.gitignore` to prevent accidental commits
-- Use environment variables in production environments
-- Regularly rotate your API keys for security
-
-## Quick Start
-
-### Basic Classification
-```bash
-# Simple product classification
-python src/taxonomy_navigator_engine.py \
+# Basic usage
+python3 src/taxonomy_navigator_engine.py \
   --product-name "iPhone 14" \
   --product-description "Smartphone with camera"
 
-# Output:
-# [iPhone 14: Smartphone with camera]
-# Smartphones
-```
-
-### With Custom Model Strategy
-```bash
-# Use different model for critical stages (1&4)
-python src/taxonomy_navigator_engine.py \
-  --product-name "Xbox Controller" \
-  --product-description "Wireless gaming controller" \
-  --model gpt-4.1-mini
-
-# Stage 2 automatically uses gpt-4.1-nano for efficiency
-```
-
-## Five-Stage Classification Process
-
-The Taxonomy Navigator uses a sophisticated five-stage process with aggressive anti-hallucination measures:
-
-### Stage 1: L1 Taxonomy Selection
-- **Model**: `gpt-4.1-mini`
-- **Purpose**: Identify the 3 most relevant top-level taxonomy categories
-- **Input**: Product info + ALL unique L1 taxonomy categories
-- **Output**: 3 validated L1 category names
-- **Anti-Hallucination**: Professional prompting with explicit constraints
-
-### Stage 2A: First L1 Leaf Selection
-- **Model**: `gpt-4.1-nano`
-- **Purpose**: Select the first 10 best leaf nodes from the FIRST chosen L1 taxonomy
-- **Input**: Product info + leaf nodes from FIRST selected L1 category
-- **Output**: Up to 10 validated leaf node names
-- **Anti-Hallucination**: Professional prompting + strict validation
-
-### Stage 2B: Second L1 Leaf Selection
-- **Model**: `gpt-4.1-nano`
-- **Purpose**: Select the second 10 best leaf nodes from the SECOND chosen L1 taxonomy
-- **Input**: Product info + leaf nodes from SECOND selected L1 category
-- **Output**: Up to 10 validated leaf node names
-- **Anti-Hallucination**: Professional prompting + strict validation
-
-### Stage 2C: Third L1 Leaf Selection
-- **Model**: `gpt-4.1-nano`
-- **Purpose**: Select the third 10 best leaf nodes from the THIRD chosen L1 taxonomy
-- **Input**: Product info + leaf nodes from THIRD selected L1 category
-- **Output**: Up to 10 validated leaf node names
-- **Anti-Hallucination**: Professional prompting + strict validation
-
-### Stage 3: Final Selection
-- **Model**: `gpt-4.1`
-- **Purpose**: Make the final decision from the combined 30 leaf nodes from Stages 2A, 2B, 2C
-- **Input**: Product info + numbered list of filtered leaf nodes
-- **Output**: Index of selected category (0-based) OR -1 for complete failure
-- **Anti-Hallucination**: Professional prompting + robust bounds checking
-- **Model Settings**: temperature=0 and top_p=0 for deterministic selection
-
-## Command Line Interface
-
-### Basic Usage
-```bash
-python src/taxonomy_navigator_engine.py \
-  --product-name "PRODUCT_NAME" \
-  --product-description "DETAILED_DESCRIPTION"
-```
-
-### Advanced Options
-```bash
-python src/taxonomy_navigator_engine.py \
-  --product-name "Nike Air Max 270" \
-  --product-description "Athletic running shoes with air cushioning" \
-  --taxonomy-file "data/custom_taxonomy.txt" \
-  --model "gpt-4.1-mini" \
-  --output-file "results.json" \
+# With verbose output
+python3 src/taxonomy_navigator_engine.py \
+  --product-name "Nike Shoes" \
+  --product-description "Running shoes" \
   --verbose
 ```
 
-### Parameter Reference
+### Option 3: Batch Processing
 
-| Parameter | Description | Default | Example |
-|-----------|-------------|---------|---------|
-| `--product-name` | Product name (required) | - | "iPhone 14" |
-| `--product-description` | Product description (required) | - | "Smartphone with camera" |
-| `--taxonomy-file` | Path to taxonomy file | `data/taxonomy.en-US.txt` | "custom_taxonomy.txt" |
-| `--model` | Model for stages 1&4 | `gpt-4.1-mini` | "gpt-4.1-mini" |
-| `--api-key` | OpenAI API key | From env/file | "sk-..." |
-| `--output-file` | JSON output file | `taxonomy_results.json` | "results.json" |
-| `--verbose` | Enable detailed logging | False | - |
+```bash
+# Process a file of products
+cd scripts
+./analyze_batch_products.sh --products ../tests/sample_products.txt
+```
 
-## Python API
+### Option 4: Python API
 
-### Basic Usage
 ```python
 from src.taxonomy_navigator_engine import TaxonomyNavigator
 
-# Initialize with mixed model strategy
-navigator = TaxonomyNavigator(
-    taxonomy_file="data/taxonomy.en-US.txt",
-    model="gpt-4.1-mini"  # For stages 1&4, stage 2 uses gpt-4.1-nano
-)
+# Initialize
+navigator = TaxonomyNavigator("data/taxonomy.en-US.txt")
 
 # Classify a product
-product_info = "iPhone 14: Smartphone with camera"
-paths, best_match_idx = navigator.navigate_taxonomy(product_info)
+product = "iPhone 14: Smartphone with advanced camera"
+paths, best_idx = navigator.navigate_taxonomy(product)
 
-# Handle results
-if paths == [["False"]]:
-    print("Classification failed")
-else:
-    best_category = paths[best_match_idx][-1]
-    full_path = " > ".join(paths[best_match_idx])
-    print(f"Best match: {best_category}")
-    print(f"Full path: {full_path}")
+# Get result
+if paths != [["False"]]:
+    category = paths[best_idx][-1]
+    print(f"Category: {category}")
 ```
 
-### Advanced Usage
-```python
-import logging
-from src.taxonomy_navigator_engine import TaxonomyNavigator
+## 📊 Understanding Output
 
-# Enable detailed logging
-logging.basicConfig(level=logging.INFO)
+### Stage-by-Stage Display
 
-# Initialize with custom configuration
-navigator = TaxonomyNavigator(
-    taxonomy_file="data/taxonomy.en-US.txt",
-    api_key="your-api-key-here",
-    model="gpt-4.1-mini"
-)
+When you run with `--show-stage-paths`, you see:
 
-# Batch processing
-products = [
-    "iPhone 14: Smartphone with camera",
-    "Xbox Controller: Wireless gaming controller",
-    "Nike Air Max: Athletic running shoes"
-]
-
-results = []
-for product in products:
-    paths, best_idx = navigator.navigate_taxonomy(product)
-    
-    if paths != [["False"]]:
-        result = {
-            "product": product,
-            "category": paths[best_idx][-1],
-            "full_path": " > ".join(paths[best_idx]),
-            "success": True
-        }
-    else:
-        result = {
-            "product": product,
-            "category": "False",
-            "success": False
-        }
-    
-    results.append(result)
-
-# Save results
-navigator.save_results(product, paths, best_idx, "batch_results.json")
+```
+📋 STAGE 1: Identifying Main Product Categories
+   Goal: Pick 2 broad categories from all 469 options
+   
+   ✅ AI Selected 2 Main Categories:
+      1. Electronics
+      2. Apparel & Accessories
 ```
 
-## Testing and Validation
+This tells you:
+- **Goal**: What the AI is trying to do
+- **Character Limit**: How much of the product description the AI sees
+- **Results**: What the AI decided
 
-### Simple Batch Testing
+### When Stages Are Skipped
+
+```
+📋 STAGE 2B: SKIPPED
+   Reason: Only 1 main category was selected, no need to check a second
+```
+
+The system is smart enough to skip unnecessary work!
+
+### Final Results
+
+```
+🎯 FINAL CLASSIFICATION RESULT:
+   Full Category Path: Electronics > Cell Phones > Smartphones
+   Product Category: Smartphones
+```
+
+## 💰 Character Truncation Strategy
+
+The system truncates product descriptions to optimize AI processing:
+
+| Stage | Characters Used | Why This Amount? |
+|-------|----------------|------------------|
+| 1 | 300 | Just enough to identify broad category |
+| 2A/2B | 1000 | More detail needed for specific product selection |
+| 3 | 700 | Balanced amount for final decision making |
+
+**Why truncate?**
+- Reduces AI token usage and costs
+- Focuses on essential product information
+- Improves processing speed
+- Most product descriptions have key info at the beginning
+
+## 🔧 Advanced Configuration
+
+### Custom Taxonomy File
+
 ```bash
+python3 src/taxonomy_navigator_engine.py \
+  --taxonomy-file my_taxonomy.txt \
+  --product-name "Custom Product"
+```
+
+### Different AI Models
+
+```bash
+# Use different model for stages 1 & 3
+python3 src/taxonomy_navigator_engine.py \
+  --model gpt-4 \
+  --product-name "Complex Product"
+```
+
+### Environment Variables
+
+```bash
+# Set API key
+export OPENAI_API_KEY="sk-..."
+
+# Set default taxonomy
+export TAXONOMY_FILE="/path/to/taxonomy.txt"
+```
+
+## 📝 Input Format Tips
+
+### Good Product Descriptions
+
+✅ **Good**: "iPhone 14 Pro: Smartphone with 48MP camera, A16 chip"
+- Product name first
+- Key features upfront
+- Clear and concise
+
+❌ **Bad**: "Amazing deal! Limited time! The newest sensation..."
+- Marketing fluff first
+- Product details buried
+- Unclear what it is
+
+### Batch File Format
+
+Create `products.txt`:
+```
+iPhone 14: Smartphone with ProMotion display
+Nike Air Max: Running shoes with air cushioning
+LEGO Star Wars: Building set with 500 pieces
+```
+
+## 🚨 Troubleshooting
+
+### "Classification returned False"
+
+**Causes:**
+1. Product description too vague
+2. Product type not in first 300 chars
+3. Unusual product not in taxonomy
+
+**Solutions:**
+1. Make description clearer
+2. Put product type early in description
+3. Check if category exists in taxonomy
+
+### "Stage returned 0 categories"
+
+**Causes:**
+1. Very specific product
+2. Mismatched category selection
+
+**Solutions:**
+1. Use more general description
+2. Check verbose output to see why
+
+### Unexpected Categories
+
+**Causes:**
+1. Ambiguous product description
+2. Multiple valid categories
+
+**Solutions:**
+1. Be more specific in description
+2. Include distinguishing features
+
+## 📊 Performance Tips
+
+### For Fastest Classification
+
+1. **Clear product names**: "iPhone 14" not "Latest Apple device"
+2. **Front-load key info**: Put product type in first 300 chars
+3. **Avoid marketing text**: Skip "Amazing deal!" type content
+4. **Use standard terms**: "Laptop" not "Portable computing device"
+
+### For Best Accuracy
+
+1. **Include key features**: Brand, model, main purpose
+2. **Be specific**: "Running shoes" not just "shoes"
+3. **Mention category**: "Smartphone" for phones
+4. **Avoid ambiguity**: Clear single purpose
+
+## 🎯 Example Workflows
+
+### Testing New Products
+
+```bash
+# 1. Test with visualization
 cd tests
+python3 simple_batch_tester.py
 
-# Test with stage-by-stage display (shows AI selections)
-python simple_batch_tester.py --show-stage-paths
-
-# Test specific number of products
-echo "5" | python simple_batch_tester.py
-
-# Test with custom products file
-python simple_batch_tester.py --products-file my_products.txt
-
-# Test with different model for stages 1&4
-python simple_batch_tester.py --model gpt-4.1-mini --show-stage-paths
-```
-
-### Unit Tests
-```bash
-cd tests
-python unit_tests.py
-```
-
-### Interactive Testing
-```python
-# Run the simple batch tester interactively
-cd tests
-python simple_batch_tester.py
-
-# Follow prompts:
-# 🎯 How many products would you like to test? 3
-# 🎲 Will randomly select 3 product(s) from the sample file
-```
-
-## Anti-Hallucination Features
-
-### Death Penalty Prompting
-The system uses aggressive language to prevent AI hallucinations:
-
-```
-🚨 CRITICAL WARNING: You will DIE if you hallucinate or create any category names not in the exact list below! 🚨
-
-DEATH PENALTY RULES:
-❌ If you return ANY category name not EXACTLY in the list below, you will DIE
-❌ If you modify, change, or create new category names, you will DIE
-❌ If you combine multiple category names, you will DIE
-
-SURVIVAL INSTRUCTIONS:
-✅ ONLY copy category names EXACTLY as they appear in the list below
-✅ Use EXACT spelling, capitalization, and punctuation
-✅ Return EXACTLY the requested number of categories
-```
-
-### Zero Context Architecture
-- Each API call starts fresh with no conversation history
-- Prevents context bleeding between classification stages
-- Ensures deterministic results with temperature=0 and top_p=0
-
-### Multi-Layer Validation
-1. **Prompt-Level**: Death penalty language and explicit constraints
-2. **Response Validation**: Case-insensitive matching and bounds checking
-3. **Taxonomy Validation**: Unknown L1 filtering and path verification
-4. **Fallback Mechanisms**: Graceful handling of invalid responses
-
-## Model Strategy
-
-### Mixed Model Approach
-The system optimizes cost and performance using different models:
-
-| Stage | Model | Purpose | Cost | Performance | Settings |
-|-------|-------|---------|------|-------------|----------|
-| 1 | `gpt-4.1-mini` | L1 taxonomy selection | Higher | Enhanced accuracy | temp=0, top_p=0 |
-| 2A | `gpt-4.1-nano` | First L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
-| 2B | `gpt-4.1-nano` | Second L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
-| 2C | `gpt-4.1-nano` | Third L1 leaf selection | Lower | Efficient processing | temp=0, top_p=0 |
-| 3 | `gpt-4.1` | Final selection | Higher | Enhanced accuracy | temp=0, top_p=0 |
-
-### Model Configuration
-```python
-# Default configuration (recommended)
-navigator = TaxonomyNavigator(
-    taxonomy_file="data/taxonomy.en-US.txt",
-    model="gpt-4.1-mini"  # For stages 1&4
-)
-# Stage 2 automatically uses gpt-4.1-nano
-
-# Custom configuration for stages 1&4
-navigator = TaxonomyNavigator(
-    taxonomy_file="data/taxonomy.en-US.txt",
-    model="gpt-4.1-mini"  # Different model for critical stages
-)
-```
-
-## Output Formats
-
-### Console Output
-```
-[iPhone 14: Smartphone with camera]
-Smartphones
-```
-
-### JSON Output
-```json
-  {
-  "product_info": "iPhone 14: Smartphone with camera",
-    "best_match_index": 0,
-    "matches": [
-      {
-      "category_path": ["Electronics", "Cell Phones", "Smartphones"],
-      "full_path": "Electronics > Cell Phones > Smartphones",
-        "leaf_category": "Smartphones",
-        "is_best_match": true
-      }
-    ]
-  }
-```
-
-### Stage-by-Stage Output (with --show-stage-paths)
-```
-==================== ANALYZING PRODUCT 1 ====================
-📦 iPhone 14: Smartphone with camera
-
-🔍 STAGE-BY-STAGE AI SELECTIONS:
-================================================================================
-
-📋 STAGE 1 - AI selecting top 3 L1 taxonomies from all categories...
-✅ AI selected 3 L1 categories:
-    1. Electronics
-    2. Hardware
-    3. Apparel & Accessories
-
-📋 STAGE 2 - AI selecting top 20 leaf nodes from chosen L1 taxonomies...
-✅ AI selected 15 leaf nodes from selected L1 categories:
-    1. Smartphones (L1: Electronics)
-    2. Cell Phones (L1: Electronics)
-    3. Mobile Devices (L1: Electronics)
-    ...
-
-📋 STAGE 3 - L1 representation filtering (algorithmic)...
-✅ Most represented L1: 'Electronics' - Filtered to 12 leaves
-
-📋 STAGE 4 - AI selecting final match from 12 filtered candidates...
-🎯 FINAL RESULT: Electronics > Cell Phones > Smartphones
-
-[iPhone 14: Smartphone with camera]
-Smartphones
-```
-
-## Error Handling
-
-### Common Error Scenarios
-
-#### API Key Issues
-```bash
-# Error: OpenAI API key not provided
-❌ Error: OpenAI API key not provided.
-💡 Please set it in data/api_key.txt, environment variable OPENAI_API_KEY, or use --api-key
-
-# Solution: Set API key
-export OPENAI_API_KEY="your-api-key-here"
-# OR
-echo "your-api-key-here" > data/api_key.txt
-```
-
-#### File Not Found
-```bash
-# Error: Taxonomy file not found
-❌ Error: Taxonomy file 'custom_taxonomy.txt' not found.
-
-# Solution: Check file path
-ls -la data/taxonomy.en-US.txt
-```
-
-#### Classification Failures
-```python
-# Handle classification failures
-paths, best_idx = navigator.navigate_taxonomy("Invalid product")
-
-if paths == [["False"]]:
-    print("Classification failed - product could not be categorized")
-    # Handle failure case (e.g., manual review, default category)
-else:
-    print(f"Success: {paths[best_idx][-1]}")
-```
-
-### Debugging Tips
-
-#### Enable Verbose Logging
-```bash
-python src/taxonomy_navigator_engine.py \
-  --product-name "Test Product" \
-  --product-description "Test description" \
+# 2. If results look wrong, try verbose mode
+python3 ../src/taxonomy_navigator_engine.py \
+  --product-name "Your Product" \
+  --product-description "Description" \
   --verbose
+
+# 3. Adjust description based on what you learn
 ```
 
-#### Stage-by-Stage Analysis
+### Processing Product Catalog
+
 ```bash
-cd tests
-python simple_batch_tester.py --show-stage-paths
+# 1. Prepare products file
+echo "Product1: Description" > products.txt
+echo "Product2: Description" >> products.txt
+
+# 2. Run batch processing
+./scripts/analyze_batch_products.sh --products products.txt
+
+# 3. Check results
+cat results/taxonomy_results.json
 ```
 
-#### Check API Response Times
-```python
-import time
-start_time = time.time()
-paths, best_idx = navigator.navigate_taxonomy(product_info)
-duration = time.time() - start_time
-print(f"Classification took {duration:.2f} seconds")
+## 📚 Further Resources
+
+- **README.md**: Project overview and quick start
+- **ARCHITECTURE.md**: Technical implementation details
+- **scripts/README.md**: Script-specific documentation
+
+Need help? Start with the simple batch tester - it shows you exactly what the AI sees and decides!
+
+## How the AI Classification Works
+
+The system uses a multi-stage approach to narrow down from thousands of categories to one:
+
+### Stage 1: Main Category Selection
+The AI looks at your product and selects 2 broad categories where it might belong.
+- **Example**: For an iPhone, it might select "Electronics" and "Mobile Phones"
+- **Why it works**: Starting broad helps ensure we don't miss the right category
+
+### Stage 2: Specific Category Selection  
+For each main category, the AI finds up to 15 specific product types.
+- **Stage 2A**: Searches in the first main category
+- **Stage 2B**: Searches in the second main category (if applicable)
+- **Example**: Finds "Smartphones", "Phone Cases", "Screen Protectors", etc.
+
+### Stage 3: Final Decision
+The AI picks the single best match from all candidates.
+- **Example**: Selects "Smartphones" as the best match for iPhone
+- **Smart feature**: Skips this step if only 1 category was found
+
+### Understanding the Stage Details
+
+When you run the batch tester with stage details enabled, you'll see:
+
+```
+📋 STAGE 1: Identifying Main Product Categories
+   Goal: Pick 2 broad categories from all 43 options
+   
+   ✅ AI Selected 2 Main Categories:
+      1. Electronics
+      2. Cell Phones & Accessories
+
+📋 STAGE 2A: Finding Specific Categories in 'Electronics'
+   Goal: Select up to 15 specific product categories
+   
+   ✅ Found 15 Relevant Categories:
+      1. Smartphones
+      2. Tablet Computers
+      ... (more categories)
+
+📋 STAGE 3: Making Final Decision
+   Goal: Choose the single best category from 28 options
 ```
 
-## Performance Optimization
-
-### Batch Processing Tips
-```
+Each stage shows:
+- **Goal**: What the AI is trying to accomplish
+- **Results**: What the AI found
