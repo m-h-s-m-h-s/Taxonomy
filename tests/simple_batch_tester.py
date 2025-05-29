@@ -18,6 +18,7 @@ Key Features:
 - Automatic title extraction from product descriptions
 - Batch processing with clean console output
 - Stage-by-stage display of AI selections at each classification stage
+- Shows AI-generated product summary used for all stages
 - Validation statistics showing how many AI selections actually exist in taxonomy
 - Random product selection for varied testing
 - Prominent visual separation between products for easy reading
@@ -34,39 +35,44 @@ Use Cases:
 Output Format:
 Each classification shows:
 1. Product analysis header with product description
-2. Stage 1: AI-selected L1 taxonomy categories (up to 3)
-3. Stage 2: AI-selected leaf nodes from chosen L1 taxonomies (up to 10)
-4. Stage 3: Final AI selection from the 10 candidates
-5. Final result: [Product Description] followed by Final Category
+2. AI-generated summary (used for all stages including final selection)
+3. Stage 1: AI-selected L1 taxonomy categories (up to 2)
+4. Stage 2: AI-selected leaf nodes from chosen L1 taxonomies (up to 15 per batch)
+5. Stage 3: Final AI selection from the candidates (using AI summary)
+6. Final result: [Product Description] followed by Final Category
 
 Example Output:
   ==================== ANALYZING PRODUCT 1 ====================
   📦 iPhone 14 Pro: Smartphone with camera...
   
-  📋 STAGE 1 - AI selecting top 3 L1 taxonomies from all categories...
-  ✅ AI selected 3 L1 categories: [Electronics, Hardware, Apparel]
+  📝 AI SUMMARY: Smartphone (mobile phone, cell phone). Premium device featuring 
+     advanced camera system, A15 processor, and ProMotion display. Designed for 
+     photography enthusiasts and power users requiring high-performance mobile computing.
   
-  📋 STAGE 2 - AI selecting top 10 leaf nodes from chosen L1 taxonomies...
-  ✅ AI selected 10 leaf nodes from selected L1 categories
+  📋 STAGE 1 - AI selecting top 2 L1 taxonomies from all categories...
+  ✅ AI selected 2 L1 categories: [Electronics, Hardware]
   
-  📋 STAGE 3 - AI selecting final match from 10 candidates...
+  📋 STAGE 2 - AI selecting top 15 leaf nodes from chosen L1 taxonomies...
+  ✅ AI selected 20 leaf nodes from selected L1 categories
+  
+  📋 STAGE 3 - AI selecting final match from 20 candidates...
   🎯 FINAL RESULT: Electronics > Cell Phones > Smartphones
   
   [iPhone 14 Pro: Smartphone with camera...]
   Smartphones
 
-Recent Improvements (v10.0):
-- Simplified all prompting to basic, clean instructions
-- Removed complex anti-hallucination language for better AI performance
-- Stage prompts now use straightforward, essential instructions only
-- System messages focus on core task requirements without threats
-- Maintained 5-stage classification process with manageable 10-item chunks
-- Enhanced AI performance through cleaner, more direct communication
-- Preserved all validation and bounds checking mechanisms
+Recent Improvements (v12.5):
+- Stage 3 now uses AI-generated summary for consistency across all stages
+- AI summaries include synonyms (e.g., "Television (TV, flat-screen display)")
+- Numeric selection in Stage 2 eliminates misspelling issues
+- Batch processing ensures all categories are accessible (e.g., Televisions at position 315)
+- Up to 15 selections per batch instead of 15 total (e.g., 4 batches = up to 60 selections)
+- Enhanced model strategy: nano for summary/stages 1-2, mini for stage 3
+- Maintained all validation and anti-hallucination measures
 
 Author: AI Assistant
-Version: 10.0
-Last Updated: 2025-01-25
+Version: 12.5
+Last Updated: 2025-01-29
 """
 
 import os
@@ -74,6 +80,7 @@ import sys
 import argparse
 import logging
 import random
+import textwrap
 
 # Add the src directory to the Python path for module imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -158,11 +165,18 @@ def classify_product_with_stage_display(navigator: TaxonomyNavigator, product_li
             print(f"\n🔍 CLASSIFICATION PROCESS VISUALIZATION")
             print("=" * 80)
             
+            # First generate the AI summary
+            print(f"\n📝 GENERATING AI SUMMARY")
+            summary = navigator.generate_product_summary(product_line)
+            # Wrap the summary nicely
+            wrapped_summary = textwrap.fill(summary, width=70, initial_indent="   ", subsequent_indent="   ")
+            print(wrapped_summary)
+            
             # Stage 1: Get the AI's top 2 L1 taxonomy selections
             print(f"\n📋 STAGE 1: Identifying Main Product Categories")
             print(f"   Goal: Pick 2 broad categories from all {len(set(path.split(' > ')[0] for i, path in enumerate(navigator.all_paths) if navigator.leaf_markers[i]))} options")
             
-            selected_l1s = navigator.stage1_l1_selection(product_line)
+            selected_l1s = navigator.stage1_l1_selection(summary)
             
             print(f"\n   ✅ AI Selected {len(selected_l1s)} Main Categories:")
             for i, l1_category in enumerate(selected_l1s, 1):
@@ -170,14 +184,12 @@ def classify_product_with_stage_display(navigator: TaxonomyNavigator, product_li
             
             # Stage 2A: Show first leaf selection from chosen L1 taxonomies
             print(f"\n📋 STAGE 2A: Finding Specific Categories in '{selected_l1s[0] if selected_l1s else 'None'}'")
-            print(f"   Goal: Select up to 15 specific product categories")
+            print(f"   Goal: Select specific product categories (up to 15 per batch)")
             
-            selected_leaves_2a = navigator.stage2a_first_leaf_selection(product_line, selected_l1s)
+            selected_leaves_2a = navigator.stage2a_first_leaf_selection(summary, selected_l1s)
             
             if selected_leaves_2a:
                 print(f"\n   ✅ Found {len(selected_leaves_2a)} Relevant Categories:")
-                # Show the leaves with their L1 context
-                leaf_to_l1 = navigator._create_leaf_to_l1_mapping()
                 for i, leaf in enumerate(selected_leaves_2a[:10], 1):  # Show max 10 for readability
                     print(f"      {i}. {leaf}")
                 if len(selected_leaves_2a) > 10:
@@ -188,9 +200,9 @@ def classify_product_with_stage_display(navigator: TaxonomyNavigator, product_li
             # Stage 2B: Show second leaf selection (only if 2 L1s were selected)
             if len(selected_l1s) >= 2:
                 print(f"\n📋 STAGE 2B: Finding Specific Categories in '{selected_l1s[1]}'")
-                print(f"   Goal: Select up to 15 specific product categories")
+                print(f"   Goal: Select specific product categories (up to 15 per batch)")
                 
-                selected_leaves_2b = navigator.stage2b_second_leaf_selection(product_line, selected_l1s, selected_leaves_2a)
+                selected_leaves_2b = navigator.stage2b_second_leaf_selection(summary, selected_l1s, selected_leaves_2a)
                 
                 if selected_leaves_2b:
                     print(f"\n   ✅ Found {len(selected_leaves_2b)} Additional Categories:")
@@ -212,30 +224,57 @@ def classify_product_with_stage_display(navigator: TaxonomyNavigator, product_li
             if len(all_selected_leaves) == 0:
                 print(f"\n📋 STAGE 3: CANNOT PROCEED")
                 print(f"   Reason: No specific categories were found")
+                print("=" * 80)
+                return "False"
             elif len(all_selected_leaves) == 1:
                 print(f"\n📋 STAGE 3: SKIPPED - Using Single Result")
                 print(f"   Reason: Only 1 category found, no need to choose")
                 print(f"   🎯 Final Category: {all_selected_leaves[0]}")
+                print("=" * 80)
+                # Get the full path for this single result
+                for i, path in enumerate(navigator.all_paths):
+                    if navigator.leaf_markers[i] and path.endswith(all_selected_leaves[0]):
+                        path_parts = path.split(" > ")
+                        if path_parts[-1] == all_selected_leaves[0]:
+                            print(f"\n🎯 FINAL CLASSIFICATION RESULT:")
+                            print(f"   Full Category Path: {path}")
+                            print(f"   Product Category: {all_selected_leaves[0]}")
+                            break
+                return all_selected_leaves[0]
             else:
                 print(f"\n📋 STAGE 3: Making Final Decision")
                 print(f"   Goal: Choose the single best category from {len(all_selected_leaves)} options")
-            print("=" * 80)
-        
-        # Perform the full classification
-        paths, best_match_idx = navigator.navigate_taxonomy(product_line)
-        
-        if show_stage_paths and paths != [["False"]]:
-            print(f"\n🎯 FINAL CLASSIFICATION RESULT:")
-            print(f"   Full Category Path: {' > '.join(paths[best_match_idx])}")
-            print(f"   Product Category: {paths[best_match_idx][-1]}")
-            print("=" * 80)
-        
-        # Extract the final leaf category
-        if paths == [["False"]]:
-            return "False"
+                print(f"   Note: Using AI-generated summary for consistency across all stages")
+                
+                # Call stage 3 to make the final selection
+                best_idx = navigator.stage3_final_selection(summary, all_selected_leaves)
+                if best_idx >= 0:
+                    selected_leaf = all_selected_leaves[best_idx]
+                    print(f"\n🎯 FINAL CLASSIFICATION RESULT:")
+                    # Get the full path for the selected leaf
+                    for i, path in enumerate(navigator.all_paths):
+                        if navigator.leaf_markers[i] and path.endswith(selected_leaf):
+                            path_parts = path.split(" > ")
+                            if path_parts[-1] == selected_leaf:
+                                print(f"   Full Category Path: {path}")
+                                print(f"   Product Category: {selected_leaf}")
+                                break
+                    print("=" * 80)
+                    return selected_leaf
+                else:
+                    print(f"\n❌ STAGE 3 FAILED")
+                    print(f"   Reason: AI could not select from the options")
+                    print("=" * 80)
+                    return "False"
         else:
-            best_path = paths[best_match_idx]
-            return best_path[-1] if best_path else "False"
+            # Non-verbose mode - just do the classification
+            paths, best_match_idx = navigator.navigate_taxonomy(product_line)
+            
+            if paths == [["False"]]:
+                return "False"
+            else:
+                best_path = paths[best_match_idx]
+                return best_path[-1] if best_path else "False"
             
     except Exception as e:
         # Return error indicator for any classification failures
@@ -259,10 +298,11 @@ Examples:
   %(prog)s --show-stage-paths                       # Display AI selections at each stage
   
 Updated Classification Process:
+  Preliminary: AI generates 40-60 word product summary (gpt-4.1-nano)
   Stage 1: AI selects top 2 L1 taxonomy categories (gpt-4.1-nano)
-  Stage 2A: AI selects first 15 leaf nodes from first L1 (gpt-4.1-nano)
-  Stage 2B: AI selects next 15 leaf nodes from second L1 (gpt-4.1-nano) - skipped if only 1 L1
-  Stage 3: AI final selection from combined candidates (gpt-4.1-mini) - skipped if only 1 leaf
+  Stage 2A: AI selects leaf nodes from first L1 (gpt-4.1-nano) - up to 15 per batch
+  Stage 2B: AI selects leaf nodes from second L1 (gpt-4.1-nano) - up to 15 per batch, skipped if only 1 L1
+  Stage 3: AI final selection from all candidates (gpt-4.1-mini) - skipped if only 1 leaf
   
 Output Format:
   Each line shows: "Product Title: Leaf Category"
@@ -388,9 +428,8 @@ Output Format:
             if show_paths:
                 print(f"\n{'='*20} PRODUCT {i+1} of {len(selected_products)} {'='*20}")
                 print(f"\n📦 PRODUCT DESCRIPTION:")
-                # Show truncated version to demonstrate what AI sees
                 print(f"   Full: {product_line[:100]}..." if len(product_line) > 100 else f"   Full: {product_line}")
-                print(f"   Stage 1 sees: {product_line[:50]}..." if len(product_line) > 50 else f"   Stage 1 sees: {product_line}")
+                print(f"   AI will generate a 40-60 word summary for all categorization stages")
                 print("=" * 100)
             
             # Classify the product

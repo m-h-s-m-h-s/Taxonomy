@@ -2,361 +2,271 @@
 
 ## Overview
 
-The Taxonomy Navigator implements a sophisticated five-stage AI classification system designed to efficiently categorize products into appropriate taxonomy categories while preventing AI hallucinations through professional prompting strategies.
+The Taxonomy Navigator implements a sophisticated AI classification system with intelligent product summarization and numeric selection designed to efficiently categorize products into appropriate taxonomy categories while preventing AI hallucinations through professional prompting strategies.
 
 ## Core Architecture Principles
 
 ### 🎯 Progressive Filtering Strategy
 The system uses a progressive filtering approach that efficiently narrows down from thousands of categories to a single best match:
-- **Stage 1**: L1s → 3 L1s (domain targeting)
-- **Stage 2A**: First L1 → 10 leaves (focused selection)
-- **Stage 2B**: Second L1 → 10 leaves (focused selection)
-- **Stage 2C**: Third L1 → 10 leaves (focused selection)
-- **Stage 3**: 30 leaves → 1 (final selection)
+- **Preliminary**: AI Summarization (40-60 words)
+- **Stage 1**: All L1s → 2 L1s (domain targeting)
+- **Stage 2A**: First L1 → up to 15 per batch (e.g., 60+ possible)
+- **Stage 2B**: Second L1 → up to 15 per batch (e.g., 150+ possible)
+- **Stage 3**: All selected leaves → 1 (numeric final selection)
+
+### 📝 AI-Powered Summarization
+The system generates focused summaries optimized for categorization:
+- **Category-First**: Summaries start with exact product type
+- **Concise**: 40-60 words focusing on taxonomy-relevant details
+- **Consistent**: Same summary used for stages 1 and 2
+
+### 🔢 Numeric Selection (NEW in v12.3)
+Eliminates misspelling issues through numeric selection:
+- **Stage 2**: AI selects categories by number (e.g., "315" not "Televisions")
+- **Stage 3**: Already uses numeric selection
+- **Benefit**: 100% accurate category identification
+
+### 📦 Batch Processing (NEW in v12.3, Enhanced in v12.4)
+Handles large taxonomies efficiently:
+- **Problem**: Important categories beyond position 100 were inaccessible
+- **Solution**: Process categories in batches of 100
+- **Example**: Electronics (339 categories) = 4 batches
+- **v12.4 Enhancement**: Up to 15 selections per batch (was 15 total)
+- **Result**: ALL categories accessible with comprehensive selection
 
 ### 🚨 Anti-Hallucination First Design
 Every AI interaction is designed with professional anti-hallucination measures:
 - **Professional Prompting**: Clear instructions and constraints
 - **Zero Context**: Each API call is a blank slate with no conversation history
-- **Multi-Layer Validation**: Multiple validation steps to catch and filter hallucinations
+- **Numeric Validation**: Numbers eliminate spelling/naming errors
 - **Explicit Constraints**: Clear prohibitions and instructions
 
 ### ⚡ Mixed Model Strategy
 Optimizes cost and performance by using different models for different stages:
-- **Critical Stages (1&3)**: `gpt-4.1-mini` for enhanced accuracy
-- **Efficiency Stages (2A/B/C)**: `gpt-4.1-nano` for cost-effective processing
+- **Summarization**: `gpt-4.1-nano` for efficient summary generation
+- **Initial Stages (1&2)**: `gpt-4.1-nano` for cost-effective processing  
+- **Final Stage (3)**: `gpt-4.1-mini` for critical final selection
 
-## Five-Stage Classification Process
+## Classification Process with AI Summarization
+
+### Preliminary Stage: AI Product Summarization
+
+**Purpose**: Generate a focused 40-60 word summary optimized for categorization
+
+**Technical Implementation**:
+```python
+def generate_product_summary(self, product_info: str) -> str:
+    prompt = """Summarize this product in 40-60 words to make its category crystal clear:
+1. START with exactly what type/category of product this is
+2. Core function that defines its category (what makes it that type of product)
+3. Key category-distinguishing features (what separates it from similar products)
+4. Primary use context (home/office/outdoor/etc)
+
+Focus on category-relevant details. Use clear product-type terminology.
+
+Product: {product_info}
+
+Summary:"""
+    
+    response = self.client.chat.completions.create(
+        model="gpt-4.1-nano",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a product categorization assistant. Create summaries that make the product's category immediately obvious. Start with the specific product type and use clear category terminology."
+            },
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0,
+        top_p=0,
+        max_tokens=100
+    )
+    
+    return response.choices[0].message.content.strip()
+```
+
+**Key Features**:
+- **Model**: `gpt-4.1-nano` (efficient summarization)
+- **Output**: 40-60 word category-focused summary
+- **Focus**: Product type first, then category-defining features
+- **Purpose**: Provides consistent input for stages 1 and 2
 
 ### Stage 1: L1 Taxonomy Selection (AI-Powered)
 
-**Purpose**: Identify the 3 most relevant top-level taxonomy categories
-
-**Technical Implementation**:
-```python
-def stage1_l1_selection(self, product_info: str) -> List[str]:
-    # Extract unique L1 categories from taxonomy
-    l1_categories = self._extract_unique_l1_categories()
-    
-    # Construct professional prompt
-    prompt = self._build_professional_prompt_l1(product_info, l1_categories)
-    
-    # Make API call with zero context
-    response = self.client.chat.completions.create(
-        model=self.model,  # gpt-4.1-mini
-        messages=[
-            {"role": "system", "content": "You are a product categorization assistant..."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0,
-        top_p=0
-    )
-    
-    # Parse and validate response
-    return self._validate_and_deduplicate(response, l1_categories)
-```
+**Purpose**: Identify the 2 most relevant top-level taxonomy categories
 
 **Key Features**:
-- **Model**: `gpt-4.1-mini` (enhanced model for critical domain targeting)
-- **Input**: Product info + ALL unique L1 taxonomy categories
-- **Output**: 3 validated L1 category names
-- **Anti-Hallucination**: Professional prompting with explicit constraints
-- **Validation**: Case-insensitive deduplication and taxonomy matching
+- Uses AI-generated summary instead of truncated text
+- Reduced from 3 to 2 L1 categories for efficiency
+- Professional prompting with validation
 
-### Stage 2A: First L1 Leaf Selection (AI-Powered)
+### Stages 2A & 2B: Leaf Selection with Batch Processing (AI-Powered)
 
-**Purpose**: Select the first 10 best leaf nodes from the FIRST chosen L1 taxonomy
+**Purpose**: Select up to 15 leaf nodes from each selected L1 taxonomy
 
-**Technical Implementation**:
+**Technical Implementation (NEW in v12.3)**:
 ```python
-def stage2a_first_leaf_selection(self, product_info: str, selected_l1s: List[str]) -> List[str]:
-    # Filter leaf nodes to first L1 category only
-    filtered_leaves = self._filter_leaves_by_l1([selected_l1s[0]])
+def _leaf_selection_helper(self, product_info: str, selected_l1s: List[str], 
+                          excluded_leaves: List[str], stage_name: str, 
+                          description: str) -> List[str]:
+    # Process in batches of 100 to handle large category lists
+    batch_size = 100
+    all_selected_numbers = []
     
-    # Create L1 context for each leaf
-    category_list_with_context = [
-        f"{leaf} (L1: {l1_category})" 
-        for leaf in filtered_leaves
-    ]
-    
-    # Construct professional prompt
-    prompt = self._build_professional_prompt_leaves(product_info, category_list_with_context)
-    
-    # Make API call with zero context
-    response = self.client.chat.completions.create(
-        model=self.stage2_model,  # gpt-4.1-nano
-        messages=[
-            {"role": "system", "content": "You are a product categorization assistant..."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0,
-        top_p=0
-    )
-    
-    # Parse, validate, and filter hallucinations
-    validated = self._validate_categories(response, filtered_leaves)
-    return self._filter_unknown_l1_categories(validated)
+    for batch_start in range(0, len(filtered_leaves), batch_size):
+        batch_end = min(batch_start + batch_size, len(filtered_leaves))
+        batch_leaves = filtered_leaves[batch_start:batch_end]
+        
+        # Create numbered list for this batch
+        numbered_options = []
+        leaf_mapping = {}  # Map batch numbers to leaf names
+        for i, leaf in enumerate(batch_leaves, 1):
+            numbered_options.append(f"{i}. {leaf} (L1: {l1_category})")
+            leaf_mapping[i] = leaf
+        
+        prompt = f"""Product: {product_info}
+
+Select any categories that match this product from the numbered list below.
+Return ONLY the numbers of matching categories, one per line.
+If no categories match, return 'NONE'.
+
+Categories to choose from (batch {batch_start//batch_size + 1}):
+{chr(10).join(numbered_options)}"""
+        
+        # AI selects by number, results combined across batches
 ```
+
+**Key Improvements**:
+- **Numeric Selection**: AI returns numbers instead of category names
+- **Batch Processing**: All categories accessible, not just first 100
+- **No Misspellings**: "315" instead of typing "Televisions"
+- **Complete Coverage**: 900+ category taxonomies fully supported
+
+### Stage 3: Final Selection (AI-Powered)
+
+**Purpose**: Make the final decision from combined leaf nodes
 
 **Key Features**:
-- **Model**: `gpt-4.1-nano` (efficient model for leaf selection)
-- **Input**: Product info + leaf nodes from FIRST selected L1 category
-- **Output**: Up to 10 validated leaf node names
-- **Anti-Hallucination**: Professional prompting + strict validation
-- **Context**: Shows L1 taxonomy for each leaf to help AI understand relationships
+- Uses AI-generated summary (same as stages 1-2) for consistency
+- Already uses numeric selection (unchanged from v12.0)
+- Conditional execution (skipped if only 1 leaf selected)
 
-### Stage 2B: Second L1 Leaf Selection (AI-Powered)
+## Critical Bug Fixes in v12.0
 
-**Purpose**: Select the second 10 best leaf nodes from the SECOND chosen L1 taxonomy
+### Leaf Node Detection Fix
 
-**Technical Implementation**:
+**Problem**: Categories with subcategories were incorrectly marked as leaf nodes
+
+**Root Cause**: The algorithm only checked the immediate next line in the taxonomy file:
 ```python
-def stage2b_second_leaf_selection(self, product_info: str, selected_l1s: List[str], excluded_leaves: List[str]) -> List[str]:
-    # Filter leaf nodes to second L1 category only
-    filtered_leaves = self._filter_leaves_by_l1([selected_l1s[1]])
-    
-    # Create L1 context for each leaf
-    category_list_with_context = [
-        f"{leaf} (L1: {l1_category})" 
-        for leaf in filtered_leaves
-    ]
-    
-    # Construct professional prompt
-    prompt = self._build_professional_prompt_leaves(product_info, category_list_with_context)
-    
-    # Make API call with zero context
-    response = self.client.chat.completions.create(
-        model=self.stage2_model,  # gpt-4.1-nano
-        messages=[
-            {"role": "system", "content": "You are a product categorization assistant..."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0,
-        top_p=0
-    )
-    
-    # Parse, validate, and filter hallucinations
-    validated = self._validate_categories(response, filtered_leaves)
-    return self._filter_unknown_l1_categories(validated)
+# OLD (BUGGY) CODE:
+if next_line and next_line.startswith(line + " > "):
+    is_leaf_node = False
 ```
 
-**Key Features**:
-- **Model**: `gpt-4.1-nano` (efficient model for leaf selection)
-- **Input**: Product info + leaf nodes from SECOND selected L1 category
-- **Output**: Up to 10 validated leaf node names
-- **Anti-Hallucination**: Professional prompting + strict validation
-- **Context**: Shows L1 taxonomy for each leaf to help AI understand relationships
-
-### Stage 2C: Third L1 Leaf Selection (AI-Powered)
-
-**Purpose**: Select the third 10 best leaf nodes from the THIRD chosen L1 taxonomy
-
-**Technical Implementation**:
+**Solution**: Check ALL subsequent lines to properly identify parent categories:
 ```python
-def stage2c_third_leaf_selection(self, product_info: str, selected_l1s: List[str], excluded_leaves: List[str]) -> List[str]:
-    # Filter leaf nodes to third L1 category only
-    filtered_leaves = self._filter_leaves_by_l1([selected_l1s[2]])
-    
-    # Create L1 context for each leaf
-    category_list_with_context = [
-        f"{leaf} (L1: {l1_category})" 
-        for leaf in filtered_leaves
-    ]
-    
-    # Construct professional prompt
-    prompt = self._build_professional_prompt_leaves(product_info, category_list_with_context)
-    
-    # Make API call with zero context
-    response = self.client.chat.completions.create(
-        model=self.stage2_model,  # gpt-4.1-nano
-        messages=[
-            {"role": "system", "content": "You are a product categorization assistant..."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0,
-        top_p=0
-    )
-    
-    # Parse, validate, and filter hallucinations
-    validated = self._validate_categories(response, filtered_leaves)
-    return self._filter_unknown_l1_categories(validated)
+# NEW (FIXED) CODE:
+# Check all remaining lines to see if any are children of this path
+for j in range(i + 1, len(lines[1:])):
+    subsequent_line = lines[j + 1].strip()
+    if subsequent_line and subsequent_line.startswith(line + " > "):
+        is_leaf_node = False
+        break  # Found a child, no need to check further
 ```
 
-**Key Features**:
-- **Model**: `gpt-4.1-nano` (efficient model for leaf selection)
-- **Input**: Product info + leaf nodes from THIRD selected L1 category
-- **Output**: Up to 10 validated leaf node names
-- **Anti-Hallucination**: Professional prompting + strict validation
-- **Context**: Shows L1 taxonomy for each leaf to help AI understand relationships
+**Impact**: Ensures only true end categories are presented for selection, significantly improving accuracy
 
-### Stage 3: Final Selection (AI-Powered with Anti-Hallucination)
-
-**Purpose**: Make the final decision from the combined 30 leaf nodes from Stages 2A, 2B, 2C
-
-**Technical Implementation**:
-```python
-def stage3_final_selection(self, product_info: str, selected_leaves: List[str]) -> int:
-    # Create numbered options
-    numbered_options = [f"{i}. {leaf}" for i, leaf in enumerate(selected_leaves, 1)]
-    
-    # Construct professional prompt for number selection
-    prompt = self._build_professional_prompt_final(product_info, numbered_options)
-    
-    # Make API call with zero context
-    response = self.client.chat.completions.create(
-        model=self.stage3_model,  # gpt-4.1
-        messages=[
-            {"role": "system", "content": "You are a product categorization assistant..."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0,  # Deterministic selection
-        top_p=0        # Deterministic selection
-    )
-    
-    # Parse number and validate bounds
-    selected_index = self._parse_and_validate_number(response, len(selected_leaves))
-    
-    # Return -1 for complete failures (indicates "False")
-    return selected_index if selected_index >= 0 else -1
-```
-
-**Key Features**:
-- **Model**: `gpt-4.1` (enhanced model for critical final selection)
-- **Input**: Product info + numbered list of filtered leaf nodes
-- **Output**: Index of selected category (0-based) OR -1 for complete failure
-- **Anti-Hallucination**: Professional prompting + robust bounds checking
-- **Model Settings**: temperature=0 and top_p=0 for deterministic selection
-- **Failure Handling**: Returns "False" when AI completely fails
-
-## Anti-Hallucination Architecture
-
-### Professional Prompting Strategy
-
-**Core Philosophy**: Use clear, professional language to guide AI responses and prevent hallucinations.
-
-**Implementation Pattern**:
-```python
-def _build_professional_prompt(self, task_description: str, valid_options: List[str]) -> str:
-    return f"""
-You are a product categorization assistant. Your task is to select categories from the provided list.
-
-IMPORTANT CONSTRAINTS:
-- You must select ONLY from the categories in the list below
-- Use EXACT spelling, capitalization, and punctuation
-- Return EXACTLY the requested number of categories
-- One category per line, no numbering, no extra text
-
-TASK: {task_description}
-
-MANDATORY CATEGORY LIST (you MUST choose from these ONLY):
-{chr(10).join(valid_options)}
-
-Remember: Select ONLY from the categories listed above.
-"""
-```
-
-### Zero Context Architecture
-
-**Implementation**: Each API call starts fresh with no conversation history:
-```python
-# CORRECT: Zero context - each call is independent
-response = self.client.chat.completions.create(
-    model=model,
-    messages=[
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
-    ],
-    temperature=0,
-    top_p=0
-)
-
-# WRONG: Would carry context between calls
-# conversation_history.append({"role": "user", "content": prompt})
-```
-
-### Multi-Layer Validation
-
-**Layer 1: Prompt-Level Prevention**
-- Professional language in prompts
-- Explicit constraints
-- Clear output format requirements
-
-**Layer 2: Response Validation**
-- Case-insensitive matching against valid options
-- Bounds checking for numerical responses
-- Format validation (e.g., single number vs. text)
-
-**Layer 3: Taxonomy Validation**
-- Stage 1: Every returned L1 category is validated against the actual L1 list
-- Stage 2A/2B/2C: Every returned leaf category is validated against the filtered leaf list
-- Stage 3: AI response is validated to be numeric and within valid range
-- All hallucinations are logged as CRITICAL errors with full context
-
-## Data Flow Architecture
+## Data Flow Architecture with Summarization and Batch Processing
 
 ```
 Product Input
      ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ STAGE 1: L1 TAXONOMY SELECTION (gpt-4.1-mini)              │
-│ Input: Product + All L1 Categories                         │
-│ Output: 3 L1 Categories                                     │
+│ PRELIMINARY: AI SUMMARIZATION (gpt-4.1-nano)                │
+│ Input: Full Product Description                             │
+│ Output: 40-60 word category-focused summary with synonyms  │
+│ Focus: Product type + category-relevant features            │
+└─────────────────────────────────────────────────────────────┘
+     ↓
+┌─────────────────────────────────────────────────────────────┐
+│ STAGE 1: L1 TAXONOMY SELECTION (gpt-4.1-nano)              │
+│ Input: AI Summary + All L1 Categories                      │
+│ Output: 2 L1 Categories                                    │
 │ Anti-Hallucination: Professional Prompting + Validation     │
 └─────────────────────────────────────────────────────────────┘
      ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ STAGE 2A: FIRST L1 LEAF SELECTION (gpt-4.1-nano)            │
-│ Input: Product + Leaves from FIRST L1                       │
-│ Output: 10 Leaf Nodes                                      │
-│ Anti-Hallucination: Professional Prompting + Validation     │
+│ STAGE 2A: FIRST L1 LEAF SELECTION (gpt-4.1-nano)           │
+│ Input: AI Summary + Leaves from FIRST L1                   │
+│ Process: Batch processing (100 per batch) + Numeric selection│
+│ Output: Up to 15 per batch (e.g., 60+ leaves possible)     │
+│ Example: Electronics (339) = 4 batches × 15 = 60 max       │
 └─────────────────────────────────────────────────────────────┘
      ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ STAGE 2B: SECOND L1 LEAF SELECTION (gpt-4.1-nano)           │
-│ Input: Product + Leaves from SECOND L1                      │
-│ Output: 10 Leaf Nodes                                     │
-│ Anti-Hallucination: Professional Prompting + Validation     │
+│ STAGE 2B: SECOND L1 LEAF SELECTION (gpt-4.1-nano)          │
+│ Input: AI Summary + Leaves from SECOND L1                  │
+│ Process: Same batch processing + numeric selection          │
+│ Output: Up to 15 per batch (combined with 2A results)      │
+│ Condition: SKIPPED if only 1 L1 selected in Stage 1        │
 └─────────────────────────────────────────────────────────────┘
      ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ STAGE 2C: THIRD L1 LEAF SELECTION (gpt-4.1-nano)            │
-│ Input: Product + Leaves from THIRD L1                       │
-│ Output: 10 Leaf Nodes                                      │
-│ Anti-Hallucination: Professional Prompting + Validation     │
+│ STAGE 3: FINAL SELECTION (gpt-4.1-mini)                    │
+│ Input: AI Summary + Combined Leaves from 2A & 2B           │
+│ Process: Select best match from numbered options           │
+│ Output: Single best category (index)                       │
+│ Condition: SKIPPED if only 1 leaf selected in Stage 2      │
+│ Anti-Hallucination: Numeric selection + bounds checking    │
 └─────────────────────────────────────────────────────────────┘
      ↓
-┌─────────────────────────────────────────────────────────────┐
-│ STAGE 3: FINAL SELECTION (gpt-4.1)                         │
-│ Input: Product + Numbered Filtered Leaves                  │
-│ Output: Index of Best Match OR -1 (False)                  │
-│ Anti-Hallucination: Professional Prompting + Bounds Checking│
-└─────────────────────────────────────────────────────────────┘
-     ↓
-Final Classification Result
+Final Category Path
 ```
 
 ## Performance Characteristics
 
 ### API Call Optimization
-- **Total API Calls**: 3 per classification (Stages 1, 2A, 2B, 2C, 3)
-- **Stage 3**: Pure algorithmic processing (0 API calls)
-- **Cost Efficiency**: Mixed model strategy optimizes cost vs. performance
+- **Total API Calls**: Variable based on taxonomy size
+  - Summarization: 1 call
+  - Stage 1: 1 call
+  - Stage 2A: 1-10 calls (depends on batch count)
+  - Stage 2B: 1-10 calls (conditional, depends on batch count)
+  - Stage 3: 1 call (conditional)
+- **Minimum**: 3 calls (1 L1 → 1 leaf)
+- **Typical**: 5-7 calls (2 L1s → multiple batches → final)
+- **Maximum**: 20+ calls (large taxonomies like Home & Garden with 900+ categories)
+
+### Batch Processing Examples
+| L1 Category | Total Categories | Batches | API Calls |
+|-------------|-----------------|---------|-----------|
+| Electronics | 339 | 4 | 4 |
+| Hardware | 451 | 5 | 5 |
+| Home & Garden | 903 | 10 | 10 |
+| Apparel | 150 | 2 | 2 |
 
 ### Model Selection Rationale
 
-| Stage | Model | Reasoning | Settings |
-|-------|-------|-----------|----------|
-| 1 | `gpt-4.1-mini` | Critical domain targeting requires enhanced reasoning | temp=0, top_p=0 |
-| 2A | `gpt-4.1-nano` | Efficient processing of pre-filtered categories | temp=0, top_p=0 |
-| 2B | `gpt-4.1-nano` | Efficient processing of pre-filtered categories | temp=0, top_p=0 |
-| 2C | `gpt-4.1-nano` | Efficient processing of pre-filtered categories | temp=0, top_p=0 |
-| 3 | `gpt-4.1` | Enhanced model for critical final selection | temp=0, top_p=0 |
+| Stage | Model | Reasoning | Key Feature |
+|-------|-------|-----------|-------------|
+| Summary | `gpt-4.1-nano` | Efficient extraction of category-relevant details | 40-60 words with synonyms |
+| 1 | `gpt-4.1-nano` | Cost-effective L1 selection with summary context | Text selection |
+| 2A/2B | `gpt-4.1-nano` | Efficient batch processing with numeric selection | Number selection |
+| 3 | `gpt-4.1-mini` | Balanced accuracy/cost for final selection | Number selection |
 
-### Scalability Features
-- **Progressive Filtering**: Reduces complexity at each stage
-- **L1 Pre-filtering**: Stages 2A, 2B, 2C only process relevant categories
-- **Algorithmic Stage 3**: No AI overhead for counting
-- **Bounded Final Stage**: Stage 3 works with small, filtered set
+## Future Architecture Considerations
+
+### Potential Enhancements
+- **Dynamic Summary Length**: Adjust summary length based on product complexity
+- **Category-Specific Prompts**: Tailor summarization for different product types
+- **Confidence Scoring**: Add confidence metrics to classifications
+- **Batch Summarization**: Optimize for multiple product processing
+
+### Monitoring and Analytics
+- **Summary Quality Tracking**: Monitor how well summaries capture category essence
+- **Classification Accuracy**: Compare pre/post summarization accuracy
+- **Token Usage Analysis**: Track cost optimization from summarization
+- **Performance Profiling**: Measure time savings from conditional execution
 
 ## Error Handling Architecture
 
